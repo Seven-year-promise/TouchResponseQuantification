@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import os
 import math
+import matplotlib.patches as mpatches
+
 
 from NeedleDetection import circle_detection, object_detection
 
@@ -70,16 +72,28 @@ def plot_robustness(detected_centers, ground_truth_centers, center_errors):
     all_centers = np.array(all_centers)
     ground_truth_centers = np.array(ground_truth_centers)
 
+    colors = [[0.1843, 0.3098, 0.3098],
+              [0.6843, 0.7098, 0.3098],
+              [0.1843, 0.73098, 0.3098]]
 
-    plt.scatter(ground_truth_centers[:, 0], ground_truth_centers[:, 1], s=80)
-    plt.scatter(all_centers[:, 0], all_centers[:, 1], s=30, marker="+")
+    plt.scatter(ground_truth_centers[:, 0], ground_truth_centers[:, 1], c = colors[0], s=50, label='Input Position')
+    plt.scatter(all_centers[:, 0], all_centers[:, 1], s=30, c = colors[1], marker="+", label='Output of the System')
+    plt.xlim((160, 320))  # 也可写成plt.xlim(-5, 5)
+    plt.ylim((160, 320))
 
     for error, gt_center in zip(center_errors, ground_truth_centers):
-        plt.text(gt_center[0]-5, gt_center[1]+3, '( error = ' + str(round(error, 2)) + ')', fontsize=8)
-
-    plt.text(235, 240, '( average error = ' + str(round(np.average(center_errors), 2)) + ')', fontsize=8)
+        plt.text(gt_center[0]-15, gt_center[1]+3, '( error = ' + str(round(error, 2)) + ')', fontsize=10)
+    plt.text(260, 170, '( error: Euclidean Distance)', fontsize=10)
+    plt.text(200, 310, '( average error = ' + str(round(np.average(center_errors), 2)) + ')', fontsize=10)
     plt.xlabel("X Axis of Image Coordinate System (pixels)", fontsize=12)
     plt.ylabel("Y Axis of Image Coordinate System (pixels)", fontsize=12)
+    patch1 = mpatches.Patch(color=[0.1843, 0.3098, 0.3098],  label='Input Position')
+    patch2 = mpatches.Patch(color=[0.6843, 0.7098, 0.3098],  label='Output of the System')
+    patch3 = mpatches.Patch(color=[0.1843, 0.73098, 0.3098], label='51 hpf')
+    # patch4 = mpatches.Patch(color=[0.1843, 0.7098, 0.6098], label='54 hpf')
+    # patch5 = mpatches.Patch(color=[0.1843, 0.3098, 0.6098], label='57 hpf')
+    #handles = [patch1, patch2],
+    plt.legend(loc = "upper right")
     plt.show()
     '''
     thresholds = np.arange(pt_num) / 100.0
