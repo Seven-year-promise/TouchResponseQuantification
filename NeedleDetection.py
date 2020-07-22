@@ -535,7 +535,7 @@ def circle_detection(gray):
     rows = gray.shape[0]
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 20,
                                param1=240, param2=50,
-                               minRadius=100, maxRadius=110)
+                               minRadius=80, maxRadius=90)
 
     if circles is not None:
         circles = np.uint16(np.around(circles))
@@ -554,7 +554,7 @@ def circle_detection(gray):
         well_radius = np.uint16(np.round(np.average(circles[0, :, 2])*0.96))
         return True, (well_centerx, well_centery, well_radius)
     else:
-        return False, (240, 240, 95)
+        return False, (240, 240, 75)
 
 def ComputeIOU(boxA, boxB):
     """
