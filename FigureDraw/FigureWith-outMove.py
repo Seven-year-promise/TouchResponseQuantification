@@ -9,8 +9,8 @@ from sklearn.ensemble import IsolationForest
 
 base_path = ["./data/"]
 
-comparison_path = ["behaviors_result_normal-body-threshold0/",
-                 "behaviors_result-treated-body-threshold0/"]
+comparison_path = ["behaviors_result_normal-body-threshold015/body/",
+                 "behaviors_result-treated-body-threshold015/body/"]
 # all paths:
 quatification = ["Latency_time.txt",
                  "C_Shape_radius.txt",
