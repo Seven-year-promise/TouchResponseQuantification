@@ -12,6 +12,8 @@ from NeedleDetection import circle_detection, object_detection
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--path', type=str, default = './split_videos/splited_images/',
                    help='sum the integers (default: find the max)')
+parser.add_argument('--gt_path', type=str, default = './robustness_points/pointsnum2.txt',
+                   help='sum the integers (default: find the max)')
 
 args = parser.parse_args()
 ground_truth_centers = [[280, 200],
@@ -116,48 +118,47 @@ def plot_robustness(detected_centers, ground_truth_centers, center_errors):
 
 
 if __name__ == '__main__':
-    path = args.path
-    detected_needle_centers = []
-    center_errors = []
-    for i in range(1, 9):
-        print('for', i)
-        base_im_path = path + str(i) + '/'
-        im_files = os.listdir(base_im_path)
+    gt_points_path = args.gt_path
+    gt_points_file = open(gt_points_path, 'r')
+    gt_points = []
 
-        im_cnt = 0
-        centers = []
-        center_error = 0
-        for ifile in im_files:
-            if ifile[-3:] != 'jpg':
-                continue
+    for line in gt_points_file.readlines():
+        point = line[:-1].split(',')
+        point = [int(p) for p in point]
+        gt_points.append(point)
 
-            im_cnt += 1
-            i_path = base_im_path + ifile
-            print(i_path)
+    im_cnt = 0
+    centers = []
+    center_error = 0
+    base_im_path = args.path
+    for im_id in range(1, len(gt_points) + 1):
+        i_path = base_im_path + str(im_id) + '.jpg'
+        print(i_path)
 
-            im = cv2.imread(i_path)
+        im = cv2.imread(i_path)
+        im = cv2.flip(im, 1)#cv2.rotate(im, cv2.cv2.ROTATE_90_CLOCKWISE)
 
-            gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
-            Well_success, well_info = circle_detection(gray.copy())  # centerx, centery, radius
+        Well_success, well_info = circle_detection(gray.copy())  # centerx, centery, radius
+        # print("\t the well is within:", well_info, Well_success)
 
+        # cv2.imshow("first_frame", frame)
+        # cv2.waitKey(0)
+        needle_blobs, needle_centers = object_detection(gray, well_info,
+                                                        threshold=30,
+                                                        dis_threshold=3,
+                                                        size_threshold_High=10,
+                                                        size_threshold_Low=0,
+                                                        what_detected='needle',
+                                                        blur=False)
+        Ncenter = needle_centers[0]
 
-            # print("\t the well is within:", well_info, Well_success)
+        print(gt_points[im_id - 1][2], gt_points[im_id - 1][3])
+        distance = math.sqrt(
+            (Ncenter[1] - gt_points[im_id - 1][3]) ** 2 + (Ncenter[0] - gt_points[im_id - 1][2]) ** 2)
+        center_error += distance
 
-            # cv2.imshow("first_frame", frame)
-            # cv2.waitKey(0)
-            needle_blobs, needle_centers = object_detection(gray, well_info,
-                                                            threshold=30,
-                                                            dis_threshold=3,
-                                                            size_threshold_High=10,
-                                                            size_threshold_Low=0,
-                                                            what_detected='needle',
-                                                            blur=False)
-            Ncenter = needle_centers[0]
-            distance = math.sqrt((Ncenter[1]-ground_truth_centers[i-1][0])**2 + (Ncenter[0]-ground_truth_centers[i-1][1])**2)
-            center_error += distance
+        centers.append([Ncenter[1], Ncenter[0]])
+    print('error average:', center_error / len(gt_points))
 
-            centers.append([Ncenter[1], Ncenter[0]])
-        detected_needle_centers.append(centers)
-        center_errors.append(center_error/im_cnt)
-    plot_robustness(detected_needle_centers, ground_truth_centers, center_errors)

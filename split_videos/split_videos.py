@@ -8,9 +8,9 @@ from skimage.feature import hog
 from skimage.morphology import skeletonize
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--video_path', type=str, default = './3_26used.avi',
+parser.add_argument('--video_path', type=str, default = './WT_152903_Speed25.avi',
                    help='sum the integers (default: find the max)')
-parser.add_argument('--save_path', type=str, default = './splited_images/',
+parser.add_argument('--save_path', type=str, default = './all_frames/',
                    help='sum the integers (default: find the max)')
 args = parser.parse_args()
 
@@ -20,6 +20,7 @@ if __name__ == '__main__':
     success, frame = cap.read()  # "/home/ws/er3973/Desktop/research_code/TailTouching.avi"
 
     while success:
+        frame = frame[100:380, 100:380, :]
         cv2.imwrite(args.save_path + str(fame_id) + '.jpg', frame)
         success, frame = cap.read()  # "/home/ws/er3973/Desktop/research_code/TailTouching.avi"
         fame_id += 1

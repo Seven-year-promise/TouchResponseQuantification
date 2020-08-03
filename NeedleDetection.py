@@ -551,10 +551,10 @@ def circle_detection(gray):
     if circles is not None:
         well_centerx = np.uint16(np.round(np.average(circles[0, :, 0])))
         well_centery = np.uint16(np.round(np.average(circles[0, :, 1])))
-        well_radius = np.uint16(np.round(np.average(circles[0, :, 2])*0.96))
+        well_radius = np.uint16(np.round(np.average(circles[0, :, 2])*0.9))
         return True, (well_centerx, well_centery, well_radius)
     else:
-        return False, (240, 240, 75)
+        return False, (240, 240, 70)
 
 def ComputeIOU(boxA, boxB):
     """
