@@ -7,10 +7,10 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-base_path = ["./data/"]
+base_path = ["./data_allthresholds/"]
 
-comparison_path = ["behaviors_result_normal-body-threshold015/body/",
-                 "behaviors_result-treated-body-threshold015/body/"]
+comparison_path = ["behaviors_result07301530normalbody0.30/body/",
+                 "behaviors_result07301530treatedbody0.30/body/"]
 # all paths:
 quatification = ["Latency_time.txt",
                  "C_Shape_radius.txt",
@@ -100,17 +100,13 @@ for I in range(4):
 
     concat_data = data_all[0]  # +data_all[2]
     concat_data = outlier_detection(concat_data)
-    max_values.append(np.max(concat_data))
     normal_data.append(concat_data)
     print("average for head: ", np.median(concat_data))
 
     concat_data = data_all[1]  # +data_all[5]
-    concat_data = outlier_detection(concat_data)
-    max_values.append(np.max(concat_data))
+    # concat_data = outlier_detection(concat_data)
     treated_data.append(concat_data)
     print("average for body: ", np.median(concat_data))
-
-    max_value = np.max(max_values)
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 
@@ -133,7 +129,7 @@ plot_data = np.array(plot_data)
 labels = [['pos'], ['neg']]
 
 plt.subplot(221)
-boxes1 = plt.boxplot([normal_data[0].tolist(), treated_data[0].tolist()],
+boxes1 = plt.boxplot([normal_data[0], treated_data[0]],
                      labels=['pos', 'neg'], widths=0.3, positions=[1, 2], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes1['boxes'], colors):
@@ -143,7 +139,7 @@ plt.grid(b=True, which="both", axis="both")
 plt.title(ylabels[0], fontsize=12)
 
 plt.subplot(222)
-boxes2 = plt.boxplot([normal_data[1].tolist(), treated_data[1].tolist()],
+boxes2 = plt.boxplot([normal_data[1], treated_data[1]],
                      labels=['pos', 'neg'], widths=0.3, positions=[1, 2], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes2['boxes'], colors):
@@ -154,7 +150,7 @@ plt.grid(b=True, which="both", axis="both")
 plt.title(ylabels[1], fontsize=12)
 
 plt.subplot(223)
-boxes3 = plt.boxplot([normal_data[2].tolist(), treated_data[2].tolist()],
+boxes3 = plt.boxplot([normal_data[2], treated_data[2]],
                      labels=['pos', 'neg'], widths=0.3, positions=[1, 2], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes3['boxes'], colors):
@@ -165,7 +161,8 @@ plt.grid(b=True, which="both", axis="both")
 plt.title(ylabels[2], fontsize=12)
 
 plt.subplot(224)
-boxes3 = plt.boxplot([normal_data[3].tolist(), treated_data[3].tolist()],
+
+boxes3 = plt.boxplot([normal_data[3], treated_data[3]],
                      labels=['pos', 'neg'], widths=0.3, positions=[1, 2], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes3['boxes'], colors):
