@@ -141,7 +141,7 @@ plot_data.append(body_data)
 plot_data.append(tail_data)
 plot_data = np.array(plot_data)
 labels = [['head'], ['body'], ['tail']]
-
+''''
 plt.subplot(221)
 boxes1 = plt.boxplot([head_data[0].tolist(), body_data[0].tolist(), tail_data[0].tolist()],
                      labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[1, 2, 3], patch_artist=True,
@@ -164,6 +164,7 @@ plt.grid(b=True, which="both", axis="both")
 plt.title(ylabels[1], fontsize=12)
 
 plt.subplot(223)
+
 boxes3 = plt.boxplot([head_data[2].tolist(), body_data[2].tolist(), tail_data[2].tolist()],
                      labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[7, 8, 9], patch_artist=True,
                      showfliers=True, showmeans=True)
@@ -175,6 +176,7 @@ plt.grid(b=True, which="both", axis="both")
 plt.title(ylabels[2], fontsize=12)
 
 plt.subplot(224)
+'''
 boxes3 = plt.boxplot([head_data[3].tolist(), body_data[3].tolist(), tail_data[3].tolist()],
                      labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[7, 8, 9], patch_artist=True,
                      showfliers=True, showmeans=True)
