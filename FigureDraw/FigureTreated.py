@@ -135,7 +135,7 @@ for I in range(4):
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 
-ylabels = ["Latency Times (S)",
+ylabels = ["Latency Times (s)",
            "C-Shape Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
@@ -158,61 +158,66 @@ x = [1, 2, 3, 4, 5]
 #    box.set(facecolor = color )
 
 # ========================================
-labels = ['30', '30.5', '31', '31.5', '32', '32.5']
+labels = ['54', '54.5', '55', '55.5', '56', '56.5']
 # boxes2 = plt.boxplot(body_data, labels = labels, positions = [7, 8, 9, 10, 11], widths = 0.8, patch_artist=True, showfliers=True)
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-
+'''
 plt.subplot(221)
 plt.errorbar(labels, normal_mean[0:6], yerr=normal_std[0:6], lw=2, marker="^", c='blue', elinewidth=1, ms=7, capsize=3)
 plt.errorbar(labels, treated_mean[0:6], yerr=treated_std[0:6], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
-plt.ylabel(ylabels[0], fontsize=12)
+#plt.ylabel(ylabels[0], fontsize=12)
 plt.xlabel('(hpf)', fontsize=12)
-#plt.title(ylabels[0], fontsize=12)
+plt.title(ylabels[0], fontsize=12)
 patch1 = mpatches.Patch(color='blue', label='controls')
 patch2 = mpatches.Patch(color='pink', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
 
+
 plt.subplot(222)
+
 plt.errorbar(labels, normal_mean[6:12], yerr=normal_std[6:12], lw=2, marker="^", c='blue', elinewidth=1, ms=7, capsize=3)
 plt.errorbar(labels, treated_mean[6:12], yerr=treated_std[6:12], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
-plt.ylabel(ylabels[1], fontsize=12)
+#plt.ylabel(ylabels[1], fontsize=12)
 plt.xlabel('(hpf)', fontsize=12)
-#plt.title(ylabels[1], fontsize=12)
+plt.title(ylabels[1], fontsize=12)
 patch1 = mpatches.Patch(color='blue', label='controls')
 patch2 = mpatches.Patch(color='pink', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
 
 plt.subplot(223)
+
 plt.errorbar(labels, normal_mean[12:18], yerr=normal_std[12:18], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
              capsize=3)
 plt.errorbar(labels, treated_mean[12:18], yerr=treated_std[12:18], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
-plt.ylabel(ylabels[2], fontsize=12)
+#plt.ylabel(ylabels[2], fontsize=12)
 plt.xlabel('(hpf)', fontsize=12)
-#plt.title(ylabels[2], fontsize=12)
+plt.title(ylabels[2], fontsize=12)
 patch1 = mpatches.Patch(color='blue', label='controls')
 patch2 = mpatches.Patch(color='pink', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
 
 plt.subplot(224)
+'''
 plt.errorbar(labels, normal_mean[18:24], yerr=normal_std[18:24], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
              capsize=3)
 plt.errorbar(labels, treated_mean[18:24], yerr=treated_std[18:24], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
-plt.ylabel(ylabels[3], fontsize=12)
+#plt.ylabel(ylabels[3], fontsize=12)
 plt.xlabel('(hpf)', fontsize=12)
-#plt.title(ylabels[3], fontsize=12)
+plt.title(ylabels[3], fontsize=12)
 patch1 = mpatches.Patch(color='blue', label='controls')
 patch2 = mpatches.Patch(color='pink', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
+
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
 # boxes3 = plt.boxplot(tail_data, labels = labels, positions = [13, 14, 15, 16, 17], widths = 0.8, patch_artist=True, showfliers=True)
@@ -223,10 +228,10 @@ plt.legend(handles=[patch1, patch2],loc = "upper left")
 # plt.vlines(6, 0.001, max_value, linestyles='solid', colors='gray', alpha=0.2)
 # plt.vlines(12, 0.001, max_value, linestyles='solid', colors='gray', alpha=0.2)
 
-patch1 = mpatches.Patch(color='blue', label='controls')
-patch2 = mpatches.Patch(color='pink', label='treated larvae')
+#patch1 = mpatches.Patch(color='blue', label='controls')
+#patch2 = mpatches.Patch(color='pink', label='treated larvae')
+#plt.legend(handles=[patch1, patch2],loc = "up_right")
 
-plt.legend(handles=[patch1, patch2],loc = "up_right")
 """
 for i in range(len(df['class'].unique())-1):
     plt.vlines(i+.5, 10, 45, linestyles='solid', colors='gray', alpha=0.2)
