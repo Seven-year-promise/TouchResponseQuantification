@@ -143,7 +143,7 @@ for I in range(4):
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 
-ylabels = ["Latency Times (S)",
+ylabels = ["Latency Times (s)",
            "C-Shape Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
@@ -171,30 +171,36 @@ labels = ['30 hpf', '54 hpf', '78 hpf']
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-
+'''
 plt.subplot(221)
+
 plt.errorbar(labels, body_mean[0:3], yerr=body_std[0:3],  marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
 plt.title(ylabels[0], fontsize=12)
 
 plt.subplot(222)
+
 plt.errorbar(labels, body_mean[3:6], yerr=body_std[3:6], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
 plt.title(ylabels[1], fontsize=12)
 
 plt.subplot(223)
+
 plt.errorbar(labels, body_mean[6:9], yerr=body_std[6:9], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
 plt.title(ylabels[2], fontsize=12)
 
+
 plt.subplot(224)
+'''
 plt.errorbar(labels, body_mean[9:12], yerr=body_std[9:12], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
 plt.title(ylabels[3], fontsize=12)
+
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
 # boxes3 = plt.boxplot(tail_data, labels = labels, positions = [13, 14, 15, 16, 17], widths = 0.8, patch_artist=True, showfliers=True)
