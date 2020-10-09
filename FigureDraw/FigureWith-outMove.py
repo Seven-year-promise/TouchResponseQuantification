@@ -111,11 +111,11 @@ for I in range(4):
 green_diamond = dict(markerfacecolor='y', marker='D')
 
 ylabels = ["Latency Time (s)",
-           "C-Shape Radius Average (pixels)",
+           "C-Bend Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
 titles = ["Result of Latency Time \nof the Larva with Different Parts touched",
-          "Result of C-Shape Radius \nof the Larva with Different Parts touched",
+          "Result of C-Bend Radius \nof the Larva with Different Parts touched",
           "Result of Response Time \nof the Larva with Different Parts touched",
           "Result of Moving Distance \nof the Larva with Different Parts touched"]
 

@@ -123,11 +123,11 @@ for I in range(4):
 green_diamond = dict(markerfacecolor='y', marker='D')
 
 ylabels = ["Latency Time (s)",
-           "C-Shape Radius Average (pixels)",
+           "C-Bend Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
 titles = ["Result of Latency Time \nof the Larva with Different Parts touched",
-          "Result of C-Shape Radius \nof the Larva with Different Parts touched",
+          "Result of C-Bend Radius \nof the Larva with Different Parts touched",
           "Result of Response Time \nof the Larva with Different Parts touched",
           "Result of Moving Distance \nof the Larva with Different Parts touched"]
 
@@ -141,51 +141,63 @@ plot_data.append(body_data)
 plot_data.append(tail_data)
 plot_data = np.array(plot_data)
 labels = [['head'], ['body'], ['tail']]
-''''
-plt.subplot(221)
+plt.figure(figsize=(4,4))
+
+#plt.subplot(221)
+"""
 boxes1 = plt.boxplot([head_data[0].tolist(), body_data[0].tolist(), tail_data[0].tolist()],
-                     labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[1, 2, 3], patch_artist=True,
+                     labels=['Head', 'Body', 'Tail'], widths=0.5, positions=[1, 2, 3], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes1['boxes'], colors):
     box.set(facecolor=color)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
-plt.title(ylabels[0], fontsize=12)
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[0], fontname = "Times New Roman", fontsize=14)
+
 
 plt.subplot(222)
+
 boxes2 = plt.boxplot([head_data[1].tolist(), body_data[1].tolist(), tail_data[1].tolist()],
-                     labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[4, 5, 6], patch_artist=True,
+                     labels=['Head', 'Body', 'Tail'], widths=0.5, positions=[4, 5, 6], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes2['boxes'], colors):
     box.set(facecolor=color)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[1], fontsize=8)
 # plt.title(titles[1])
-plt.title(ylabels[1], fontsize=12)
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
 
 plt.subplot(223)
-
+"""
 boxes3 = plt.boxplot([head_data[2].tolist(), body_data[2].tolist(), tail_data[2].tolist()],
-                     labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[7, 8, 9], patch_artist=True,
+                     labels=['Head', 'Body', 'Tail'], widths=0.5, positions=[7, 8, 9], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes3['boxes'], colors):
     box.set(facecolor=color)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[2], fontsize=8)
 # plt.title(titles[2])
-plt.title(ylabels[2], fontsize=12)
-
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
+"""
 plt.subplot(224)
-'''
+
+
 boxes3 = plt.boxplot([head_data[3].tolist(), body_data[3].tolist(), tail_data[3].tolist()],
-                     labels=['Head', 'Body', 'Tail'], widths=0.3, positions=[7, 8, 9], patch_artist=True,
+                     labels=['Head', 'Body', 'Tail'], widths=0.5, positions=[7, 8, 9], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes3['boxes'], colors):
     box.set(facecolor=color)
 plt.grid(b=True, which="both", axis="both")
-# plt.ylabel(ylabels[3], fontsize=8)
-# plt.title(titles[3])
-plt.title(ylabels[3], fontsize=12)
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[3], fontname = "Times New Roman", fontsize=14)
+"""
 
 patch1 = mpatches.Patch(color=[0.7843, 0.3098, 0.3098], label='head')
 patch2 = mpatches.Patch(color=[0.6843, 0.7098, 0.3098], label='body')

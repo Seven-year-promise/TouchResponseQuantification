@@ -136,11 +136,11 @@ for I in range(4):
 green_diamond = dict(markerfacecolor='y', marker='D')
 
 ylabels = ["Latency Times (s)",
-           "C-Shape Radius Average (pixels)",
+           "C-Bend Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
 titles = ["Result of Latency Time \nof the Larva in Different Ages With Body Touched",
-          "Result of C-Shape Radius \nof the Larva in Different Ages With Body Touched",
+          "Result of C-Bend Radius \nof the Larva in Different Ages With Body Touched",
           "Result of Response Time \nof the Larva in Different Ages With Body Touched",
           "Result of Moving Distance \nof the Larva in Different Ages With Body Touched"]
 
@@ -163,18 +163,17 @@ labels = ['54', '54.5', '55', '55.5', '56', '56.5']
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-'''
-plt.subplot(221)
+plt.figure(figsize=(4,4))
+#plt.subplot(221)
+"""
 plt.errorbar(labels, normal_mean[0:6], yerr=normal_std[0:6], lw=2, marker="^", c='blue', elinewidth=1, ms=7, capsize=3)
 plt.errorbar(labels, treated_mean[0:6], yerr=treated_std[0:6], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
 #plt.ylabel(ylabels[0], fontsize=12)
-plt.xlabel('(hpf)', fontsize=12)
-plt.title(ylabels[0], fontsize=12)
-patch1 = mpatches.Patch(color='blue', label='controls')
-patch2 = mpatches.Patch(color='pink', label='treated larvae')
-plt.legend(handles=[patch1, patch2],loc = "upper left")
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[0], fontname = "Times New Roman", fontsize=14)
 
 
 plt.subplot(222)
@@ -184,40 +183,38 @@ plt.errorbar(labels, treated_mean[6:12], yerr=treated_std[6:12], marker="o", lw=
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
 #plt.ylabel(ylabels[1], fontsize=12)
-plt.xlabel('(hpf)', fontsize=12)
-plt.title(ylabels[1], fontsize=12)
-patch1 = mpatches.Patch(color='blue', label='controls')
-patch2 = mpatches.Patch(color='pink', label='treated larvae')
-plt.legend(handles=[patch1, patch2],loc = "upper left")
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
 
 plt.subplot(223)
-
+"""
 plt.errorbar(labels, normal_mean[12:18], yerr=normal_std[12:18], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
              capsize=3)
 plt.errorbar(labels, treated_mean[12:18], yerr=treated_std[12:18], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
 #plt.ylabel(ylabels[2], fontsize=12)
-plt.xlabel('(hpf)', fontsize=12)
-plt.title(ylabels[2], fontsize=12)
-patch1 = mpatches.Patch(color='blue', label='controls')
-patch2 = mpatches.Patch(color='pink', label='treated larvae')
-plt.legend(handles=[patch1, patch2],loc = "upper left")
-
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
+"""
 plt.subplot(224)
-'''
+
 plt.errorbar(labels, normal_mean[18:24], yerr=normal_std[18:24], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
              capsize=3)
 plt.errorbar(labels, treated_mean[18:24], yerr=treated_std[18:24], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
              capsize=3)
 plt.grid(b=True, which="both", axis="both")
 #plt.ylabel(ylabels[3], fontsize=12)
-plt.xlabel('(hpf)', fontsize=12)
-plt.title(ylabels[3], fontsize=12)
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[3], fontname = "Times New Roman", fontsize=14)
+"""
+
 patch1 = mpatches.Patch(color='blue', label='controls')
 patch2 = mpatches.Patch(color='pink', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
-
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
 # boxes3 = plt.boxplot(tail_data, labels = labels, positions = [13, 14, 15, 16, 17], widths = 0.8, patch_artist=True, showfliers=True)

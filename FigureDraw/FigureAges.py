@@ -99,7 +99,8 @@ for I in range(4):
         for datum in data:
             data_item = (datum.strip())
             if data_item != "nan":
-                distance_data.append((float)(data_item))
+                data_item = (float)(data_item)
+                distance_data.append(data_item)
         # print(distance_data)
         # distance_data = np.array(distance_data)
         # inlierIndex = outlier_detection(distance_data)
@@ -144,11 +145,11 @@ for I in range(4):
 green_diamond = dict(markerfacecolor='y', marker='D')
 
 ylabels = ["Latency Times (s)",
-           "C-Shape Radius Average (pixels)",
+           "C-Bend Radius Average (pixels)",
            "Response Time (s)",
            "Moving Distance (pixels)"]
 titles = ["Result of Latency Time \nof the Larva in Different Ages With Body Touched",
-          "Result of C-Shape Radius \nof the Larva in Different Ages With Body Touched",
+          "Result of C-Bend Radius \nof the Larva in Different Ages With Body Touched",
           "Result of Response Time \nof the Larva in Different Ages With Body Touched",
           "Result of Moving Distance \nof the Larva in Different Ages With Body Touched"]
 
@@ -167,40 +168,49 @@ x = [1, 2, 3, 4, 5]
 
 # ========================================
 labels = ['30 hpf', '54 hpf', '78 hpf']
+plt.figure(figsize=(4,4))
 # boxes2 = plt.boxplot(body_data, labels = labels, positions = [7, 8, 9, 10, 11], widths = 0.8, patch_artist=True, showfliers=True)
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-'''
-plt.subplot(221)
+
+#plt.subplot(221)
 
 plt.errorbar(labels, body_mean[0:3], yerr=body_std[0:3],  marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
-plt.title(ylabels[0], fontsize=12)
 
+plt.xticks(fontsize=14, fontname = "Times New Roman", )
+plt.yticks(fontsize=13, fontname = "Times New Roman")
+plt.title(ylabels[0], fontname = "Times New Roman", fontsize=14)
+"""
 plt.subplot(222)
 
 plt.errorbar(labels, body_mean[3:6], yerr=body_std[3:6], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
-plt.title(ylabels[1], fontsize=12)
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
 
 plt.subplot(223)
 
 plt.errorbar(labels, body_mean[6:9], yerr=body_std[6:9], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
-plt.title(ylabels[2], fontsize=12)
-
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
 
 plt.subplot(224)
-'''
+
 plt.errorbar(labels, body_mean[9:12], yerr=body_std[9:12], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[0], fontsize=8)
-plt.title(ylabels[3], fontsize=12)
-
+plt.xticks(fontsize=14, fontname = "Times New Roman")
+plt.yticks(fontsize=14, fontname = "Times New Roman")
+plt.title(ylabels[3], fontname = "Times New Roman", fontsize=14)
+"""
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
 # boxes3 = plt.boxplot(tail_data, labels = labels, positions = [13, 14, 15, 16, 17], widths = 0.8, patch_artist=True, showfliers=True)
