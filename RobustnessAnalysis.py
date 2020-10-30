@@ -2,12 +2,11 @@ import argparse
 from matplotlib import pyplot as plt
 import cv2
 import numpy as np
-import os
 import math
 import matplotlib.patches as mpatches
 
 
-from NeedleDetection import circle_detection, object_detection
+from Methods.NeedleDetection import circle_detection, object_detection
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--path', type=str, default = './split_videos/splited_images/',
