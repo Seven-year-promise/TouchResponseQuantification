@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 import pyqtgraph as pg
 
 from QtFunctions.Lines import QHLine, QVLine
+from ImageProcessing import ImageProcessor
 
 import sys
 import cv2
@@ -16,12 +17,17 @@ class Ui_mainWindow(QMainWindow):
         #mainWindow.resize(800, 800)
         self.video_path = "select the video path"
         self.video_frames = []
+        self.video_cropped_frames = []
+        self.video_sift_frames =[]
         self.frame_number = 10000
 
         self.distance_file = '_'
         self.position_flag1 = False
         self.position_flag2 = False
         self.negative_flag = False
+        self.cropped_flag = False
+        self.sift_flag = False
+
         self.position_value1 = 0
         self.position_value2 = 0
         self.position_value3 = 0
@@ -31,6 +37,11 @@ class Ui_mainWindow(QMainWindow):
         self.current_path = ""
 
         self.bin_threshold = 0
+
+        self.im_processor = ImageProcessor()
+
+        self.msgbox = QMessageBox()
+        self.msgbox.setIcon(QMessageBox.Information)
 
         #self.resize(1280, 720)
         #self.openFile()
@@ -81,13 +92,37 @@ class Ui_mainWindow(QMainWindow):
         self.slider.setMinimum(1)
         self.slider.setMaximum(self.frame_number)
         #self.slider.setStyleSheet('border:0px solid #cccccc;')
-        self.slider.valueChanged[int].connect(self.changeValue)
+        self.slider.valueChanged[int].connect(self.sliderchangeValue)
         self.slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.keyframe = QLabel("0")
         self.keyframe.setObjectName("key frame")
         self.keyframe.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        self.display_layout.addWidget(QHLine(), 0, 0, 1, 6)
+        self.display_layout.addWidget(QVLine(), 0, 0, 4, 1)
+        self.display_layout.addWidget(self.video, 1, 1, 1, 1)
+        self.display_layout.addWidget(self.keyframe, 2, 2, 1, 1)
+        self.display_layout.addWidget(self.slider, 2, 1, 1, 1)
+
+        self.im_processing_widget = QWidget()  # set main controls
+        self.im_processing_layout = QGridLayout()  # set main layout
+        self.im_processing_widget.setLayout(self.im_processing_layout)
+        self.im_processing_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.display_layout.addWidget(self.im_processing_widget, 1, 3)
+        self.init_im_processing_block()
+
+        self.file_widget = QWidget()  # set main controls
+        self.file_layout = QGridLayout()  # set main layout
+        self.file_widget.setLayout(self.file_layout)
+        self.file_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.display_layout.addWidget(self.file_widget, 1, 4)
+        self.init_file_block()
+
+        self.display_layout.addWidget(QHLine(), 3, 0, 1, 6)
+        self.display_layout.addWidget(QVLine(), 0, 5, 4, 1)
+
+    def init_im_processing_block(self):
         self.bin_threshold_label = QLabel("Binary Threshold")
         self.bin_threshold_label.setObjectName("bin_threshold_label")
         self.bin_threshold_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -109,13 +144,21 @@ class Ui_mainWindow(QMainWindow):
         self.percentage.setObjectName("percentage")
         self.percentage.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        self.load_button = QPushButton('Load Files')
+        self.load_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.load_button.clicked.connect(self.load_button_click)
+
         self.binarization_button = QPushButton('binarization')
         self.binarization_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.binarization_button.clicked.connect(self.binarization_button_click)
 
-        self.load_button = QPushButton('Load Files')
-        self.load_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.load_button.clicked.connect(self.load_button_click)
+        self.crop_button = QPushButton('Crop Image')
+        self.crop_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.crop_button.clicked.connect(self.crop_button_click)
+
+        self.sift_button = QPushButton('SIFT Extraction')
+        self.sift_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.sift_button.clicked.connect(self.sift_button_click)
 
         self.exit_button = QPushButton('EXIT')
         self.exit_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -129,37 +172,30 @@ class Ui_mainWindow(QMainWindow):
         self.neg_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.neg_button.clicked.connect(self.neg_button_click)
 
+        self.im_processing_layout.addWidget(self.load_button, 0, 0)
+        self.im_processing_layout.addWidget(self.bin_threshold_label, 1, 0)
+        self.im_processing_layout.addWidget(self.bin_threshold_text, 1, 1)
+        self.im_processing_layout.addWidget(self.position2, 2, 1)
+        self.im_processing_layout.addWidget(self.position3, 3, 1)
+        self.im_processing_layout.addWidget(self.percentage, 4, 1)
+
+        self.im_processing_layout.addWidget(self.binarization_button, 5, 1)
+        self.im_processing_layout.addWidget(self.crop_button, 6, 1)
+        self.im_processing_layout.addWidget(self.sift_button, 7, 1)
+        self.im_processing_layout.addWidget(self.exit_button, 8, 1)
+        self.im_processing_layout.addWidget(self.pos_button, 9, 1)
+        self.im_processing_layout.addWidget(self.neg_button, 10, 1)
+
+    def init_file_block(self):
         self.file_paths_label = QLabel("File Paths")
         self.file_paths_label.setObjectName("file_paths_label")
-        self.file_paths_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.files_list = QListWidget(self)
         self.files_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.files_list.itemDoubleClicked.connect(self.fileOnClicked)
 
-        self.display_layout.addWidget(QHLine(), 0, 0, 1, 6)
-        self.display_layout.addWidget(QVLine(), 0, 0, 11, 1)
-        self.display_layout.addWidget(self.video, 1, 1, 8, 1)
-        self.display_layout.addWidget(self.keyframe, 9, 2, 1, 1)
-        self.display_layout.addWidget(self.slider, 9, 1, 1, 1)
-
-        self.display_layout.addWidget(self.load_button, 1, 3)
-        self.display_layout.addWidget(self.bin_threshold_label, 2, 2)
-        self.display_layout.addWidget(self.bin_threshold_text, 2, 3)
-        self.display_layout.addWidget(self.position2, 3, 3)
-        self.display_layout.addWidget(self.position3, 4, 3)
-        self.display_layout.addWidget(self.percentage, 5, 3)
-
-        self.display_layout.addWidget(self.binarization_button, 6, 3)
-        self.display_layout.addWidget(self.exit_button, 7, 3)
-        self.display_layout.addWidget(self.pos_button, 8, 3)
-        self.display_layout.addWidget(self.neg_button, 9, 3)
-
-        self.display_layout.addWidget(self.file_paths_label, 1, 4, 1, 1)
-        self.display_layout.addWidget(self.files_list, 2, 4, 8, 1)
-
-        self.display_layout.addWidget(QHLine(), 10, 0, 1, 6)
-        self.display_layout.addWidget(QVLine(), 0, 5, 11, 1)
+        self.file_layout.addWidget(self.file_paths_label, 0, 0, 1, 1)
+        self.file_layout.addWidget(self.files_list, 1, 0, 11, 1)
 
     def init_quantification_block(self):
         self.quantification_layout.addWidget(QHLine(), 0, 0, 1, 9)
@@ -262,7 +298,6 @@ class Ui_mainWindow(QMainWindow):
             self.load_video()
 
     def fileOnClicked(self):
-
         self.openfiles()
         self.video_player()
         self.slider.setMaximum(self.frame_number)
@@ -274,6 +309,14 @@ class Ui_mainWindow(QMainWindow):
         if fileName[-3:] == 'txt':
             self.percentage_file = open(fileName, 'w')
 
+    def im2qImg(self, im):
+        height, width, channel = im.shape
+        bytesPerLine = 3 * width
+        qImg = QImage(im.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        pixmap01 = QPixmap.fromImage(qImg)
+
+        return pixmap01
+
     def load_video(self):
         cap = cv2.VideoCapture(self.video_path)
         success, frame = cap.read()
@@ -281,32 +324,83 @@ class Ui_mainWindow(QMainWindow):
         frame_cnt = 0
         while success:
             frame = cv2.resize(frame, (self.video_size,self.video_size))
-            height, width, channel = frame.shape
-            bytesPerLine = 3 * width
-            qImg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888)
-            pixmap01 = QPixmap.fromImage(qImg)
-            video_frames.append(pixmap01)
+
+            video_frames.append(frame)
             frame_cnt += 1
             success, frame = cap.read()
         self.video_frames = video_frames
         self.frame_number = frame_cnt
 
     def video_player(self):
-        self.video.setPixmap(self.video_frames[0])
+        self.video.setPixmap(self.im2qImg(self.video_frames[0]))
 
-    def changeValue(self):
+    def sliderchangeValue(self):
         slider_value = self.slider.value()
         txt = str(slider_value)
         self.keyframe.setText(txt)
         if len(self.video_frames) >1 :
-            self.video.setPixmap(self.video_frames[slider_value-1])
+            if self.cropped_flag:
+                self.video.setPixmap(self.im2qImg(self.video_cropped_frames[slider_value - 1]))
+            elif self.sift_flag:
+                self.video.setPixmap(self.im2qImg(self.video_sift_frames[slider_value - 1]))
+            else:
+                self.video.setPixmap(self.im2qImg(self.video_frames[slider_value-1]))
 
     def load_button_click(self):
         self.loadfiles()
 
+        self.msgbox.setText("load files finished")
+        #self.msgbox.setInformativeText("This is additional information")
+        #self.msgbox.setWindowTitle("MessageBox demo")
+        #self.msgbox.setDetailedText("The details are as follows:")
+
+        self.msgbox.exec()
+
     def binarization_button_click(self):
         # TO DO
         self.openPercentageFile()
+        self.msgbox.setText("binarization finished")
+        # self.msgbox.setInformativeText("This is additional information")
+        # self.msgbox.setWindowTitle("MessageBox demo")
+        # self.msgbox.setDetailedText("The details are as follows:")
+
+        self.msgbox.exec()
+
+    def crop_button_click(self):
+        first_frame = self.video_frames[0]
+        first_frame_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
+        success, (well_centerx, well_centery, well_radius) = self.im_processor.well_detection(first_frame_gray)
+
+        mask = np.zeros(first_frame_gray.shape[:2], dtype="uint8")
+        cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+
+        for frame in self.video_frames:
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray_masked = cv2.bitwise_and(frame_gray, frame_gray, mask=mask)
+            frame_color = cv2.cvtColor(gray_masked, cv2.COLOR_GRAY2BGR)
+            self.video_cropped_frames.append(frame_color)
+
+        self.cropped_flag = True
+        self.msgbox.setText("image crop finished")
+        # self.msgbox.setInformativeText("This is additional information")
+        # self.msgbox.setWindowTitle("MessageBox demo")
+        # self.msgbox.setDetailedText("The details are as follows:")
+
+        self.msgbox.exec()
+
+    def sift_button_click(self):
+        for frame in self.video_cropped_frames:
+            frame_feature, _, _ = self.im_processor.feature_extraction(frame)
+            self.video_sift_frames.append(frame_feature)
+
+        self.cropped_flag = False
+        self.sift_flag = True
+        self.msgbox.setText("SIFT detection finished")
+        # self.msgbox.setInformativeText("This is additional information")
+        # self.msgbox.setWindowTitle("MessageBox demo")
+        # self.msgbox.setDetailedText("The details are as follows:")
+
+        self.msgbox.exec()
 
     def exit_button_click(self):
         self.percentage_file.close()
