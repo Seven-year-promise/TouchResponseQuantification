@@ -127,31 +127,31 @@ x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu3, std3)*100
 plt.plot(x, p, 'k', linewidth=2, color='g')
 
-plt.figtext(0.23, 0.65, r"$\mu_1 = 4.18\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='r', fontsize=14)
-plt.figtext(0.23, 0.6, r"$\sigma_1 = 6.96\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='r', fontsize=14)
+plt.figtext(0.25, 0.84, r"$\mu_1 = 4.18\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='r', fontsize=18)
+plt.figtext(0.25, 0.79, r"$\sigma_1 = 6.96\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='r', fontsize=18)
 
-plt.figtext(0.53, 0.65, r"$\mu_2 = 28.87\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='b', fontsize=14)
-plt.figtext(0.53, 0.6, r"$\sigma_2 = 5.69\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='b', fontsize=14)
+plt.figtext(0.53, 0.75, r"$\mu_2 = 28.87\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='b', fontsize=18)
+plt.figtext(0.53, 0.7, r"$\sigma_2 = 5.69\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='b', fontsize=18)
 
-plt.figtext(0.78, 0.65, r"$\mu_3 = 69.46\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='g', fontsize=14)
-plt.figtext(0.78, 0.6, r"$\sigma_3 = 8.53\%$",
-        horizontalalignment='center', fontname ="Times New Roman", color='g', fontsize=14)
+plt.figtext(0.75, 0.65, r"$\mu_3 = 69.46\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='g', fontsize=18)
+plt.figtext(0.75, 0.6, r"$\sigma_3 = 8.53\%$",
+        horizontalalignment='center', fontname ="Times New Roman", color='g', fontsize=18)
 
 x_ticks = np.arange(-20, 100, 10)   # range from -25 to 100, show every 10
 y_ticks = np.arange(0, 20, 2) # range from 0 to 20, show every 2
-plt.xticks(x_ticks, fontname ="Times New Roman", fontsize = 14)
-plt.yticks(y_ticks, fontname ="Times New Roman", fontsize = 14)
+plt.xticks(x_ticks, fontname ="Times New Roman", fontsize = 18)
+plt.yticks(y_ticks, fontname ="Times New Roman", fontsize = 18)
 
 
 
-plt.xlabel("Coordinates of touched points in percentage coordinate system (%)", fontname ="Times New Roman",fontsize = 14)
+plt.xlabel("Touched Points in Percentage Coordinate System (%)", fontname ="Times New Roman",fontsize = 18)
 
-plt.ylabel("Number of touched points", fontname ="Times New Roman", fontsize = 14)
+plt.ylabel("Number of Touched Points", fontname ="Times New Roman", fontsize = 18)
 
 #plt.title("Histogram of touching points")
 plt.show()
