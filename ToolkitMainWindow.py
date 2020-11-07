@@ -19,6 +19,7 @@ class Ui_mainWindow(QMainWindow):
         self.video_frames = []
         self.video_cropped_frames = []
         self.video_sift_frames =[]
+        self.video_binary_frames = []
         self.frame_number = 10000
 
         self.distance_file = '_'
@@ -26,12 +27,14 @@ class Ui_mainWindow(QMainWindow):
         self.position_flag2 = False
         self.negative_flag = False
         self.cropped_flag = False
+        self.binary_flag = False
         self.sift_flag = False
 
         self.position_value1 = 0
         self.position_value2 = 0
         self.position_value3 = 0
         self.video_size = 480
+        self.well_infos = []
 
         self.file_paths = []
         self.current_path = ""
@@ -179,8 +182,8 @@ class Ui_mainWindow(QMainWindow):
         self.im_processing_layout.addWidget(self.position3, 3, 1)
         self.im_processing_layout.addWidget(self.percentage, 4, 1)
 
-        self.im_processing_layout.addWidget(self.binarization_button, 5, 1)
-        self.im_processing_layout.addWidget(self.crop_button, 6, 1)
+        self.im_processing_layout.addWidget(self.crop_button, 5, 1)
+        self.im_processing_layout.addWidget(self.binarization_button, 6, 1)
         self.im_processing_layout.addWidget(self.sift_button, 7, 1)
         self.im_processing_layout.addWidget(self.exit_button, 8, 1)
         self.im_processing_layout.addWidget(self.pos_button, 9, 1)
@@ -340,9 +343,17 @@ class Ui_mainWindow(QMainWindow):
         self.keyframe.setText(txt)
         if len(self.video_frames) >1 :
             if self.cropped_flag:
-                self.video.setPixmap(self.im2qImg(self.video_cropped_frames[slider_value - 1]))
+                frame = self.video_cropped_frames[slider_value - 1]
+                frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                self.video.setPixmap(self.im2qImg(frame_color))
             elif self.sift_flag:
-                self.video.setPixmap(self.im2qImg(self.video_sift_frames[slider_value - 1]))
+                frame = self.video_sift_frames[slider_value - 1]
+                frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                self.video.setPixmap(self.im2qImg(frame_color))
+            elif self.binary_flag:
+                frame = self.video_binary_frames[slider_value - 1]
+                frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                self.video.setPixmap(self.im2qImg(frame_color))
             else:
                 self.video.setPixmap(self.im2qImg(self.video_frames[slider_value-1]))
 
@@ -358,7 +369,17 @@ class Ui_mainWindow(QMainWindow):
 
     def binarization_button_click(self):
         # TO DO
-        self.openPercentageFile()
+        i = 0
+        self.video_binary_frames.clear()
+        for frame in self.video_cropped_frames:
+            frame_feature, _, _ = self.im_processor.feature_extraction(frame, method = "LRB", well_infos=self.well_infos)
+            self.video_binary_frames.append(frame_feature)
+            i += 1
+            if i>5:
+                break
+        self.cropped_flag = False
+        self.sift_flag = False
+        self.binary_flag = True
         self.msgbox.setText("binarization finished")
         # self.msgbox.setInformativeText("This is additional information")
         # self.msgbox.setWindowTitle("MessageBox demo")
@@ -367,18 +388,21 @@ class Ui_mainWindow(QMainWindow):
         self.msgbox.exec()
 
     def crop_button_click(self):
+        self.video_cropped_frames.clear()
         first_frame = self.video_frames[0]
         first_frame_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
         success, (well_centerx, well_centery, well_radius) = self.im_processor.well_detection(first_frame_gray)
-
+        self.well_infos = (well_centerx, well_centery, well_radius)
         mask = np.zeros(first_frame_gray.shape[:2], dtype="uint8")
         cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+        mask2 = np.ones(first_frame_gray.shape[:2], dtype="uint8") * 255
+        cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
 
         for frame in self.video_frames:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             gray_masked = cv2.bitwise_and(frame_gray, frame_gray, mask=mask)
-            frame_color = cv2.cvtColor(gray_masked, cv2.COLOR_GRAY2BGR)
-            self.video_cropped_frames.append(frame_color)
+            gray_masked += mask2
+            self.video_cropped_frames.append(gray_masked)
 
         self.cropped_flag = True
         self.msgbox.setText("image crop finished")
@@ -389,9 +413,17 @@ class Ui_mainWindow(QMainWindow):
         self.msgbox.exec()
 
     def sift_button_click(self):
+        self.video_sift_frames.clear()
+        i = 0
         for frame in self.video_cropped_frames:
-            frame_feature, _, _ = self.im_processor.feature_extraction(frame)
-            self.video_sift_frames.append(frame_feature)
+            if i < 2:
+                frame_feature, _, _ = self.im_processor.feature_extraction(frame)
+                cv2.imshow("this", frame_feature)
+                cv2.waitKey(0)
+                self.video_sift_frames.append(frame_feature)
+            else:
+                self.video_sift_frames.append(frame)
+            i+=1
 
         self.cropped_flag = False
         self.sift_flag = True
