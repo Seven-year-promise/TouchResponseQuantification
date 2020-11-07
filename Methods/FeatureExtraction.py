@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import cmp_to_key
+from Methods.LogisticRegression import LogisticRegression
 
 float_tolerance = 1e-7
 
@@ -32,13 +33,50 @@ class SIFT:
         dog_images = generateDoGImages(gaussian_images)
 
 
-        return keypoints, descriptors
+        return dog_images
 
-    def compute_descriptors(self, bboxes):
+    def compute_descriptors(self, bboxes, gaussian_images):
         descriptors = generateDescriptors(bboxes, gaussian_images)
 
+        return descriptors
 
+class Binarization:
+    def __init__(self, method = "Otsu", threshold = 180):
+        self.threshold = threshold
+        self.method = method
+        self.lr = LogisticRegression(resume=True, paras_file="para.txt")
 
+    def compute_binary(self, im, well_infos):
+        if self.method == "Otsu":
+            return self.Otsu(im)
+        elif self.method == "LRB":
+            return self.LRB(im, well_infos)
+
+    def Otsu(self, im):
+        blur = cv2.GaussianBlur(im, (3, 3), 0)
+        ret, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return th
+
+    def LRB(self, im, well_infos, block_size = 12):
+        w_x, w_y, r = well_infos
+        height, width = im.shape
+        binary = im.copy()
+        for h in range(height):
+            for w in range(width):
+                if ((h-w_y)**2 + (w-w_x)**2) < r**2:
+
+                    x_min = int(w - block_size / 2)
+                    x_max = int(w + block_size / 2)
+                    y_min = int(h - block_size / 2)
+                    y_max = int(h + block_size / 2)
+                    im_block = np.array(im[y_min:y_max, x_min:x_max], np.float32).reshape(1, -1) / 255.0
+                    pre = self.lr.predict(im_block, 0.6)
+                    if pre:
+                        print(int(pre))
+                        binary[h, w] = 0
+                    else:
+                        binary[h, w] = 255
+        return binary
 
 #########################
 # Image pyramid related #
