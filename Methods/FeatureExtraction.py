@@ -70,9 +70,9 @@ class Binarization:
                     y_min = int(h - block_size / 2)
                     y_max = int(h + block_size / 2)
                     im_block = np.array(im[y_min:y_max, x_min:x_max], np.float32).reshape(1, -1) / 255.0
-                    pre = self.lr.predict(im_block, 0.6)
+                    pre = self.lr.predict(im_block, 0.5)
                     if pre:
-                        print(int(pre))
+                        #print(int(pre))
                         binary[h, w] = 0
                     else:
                         binary[h, w] = 255
