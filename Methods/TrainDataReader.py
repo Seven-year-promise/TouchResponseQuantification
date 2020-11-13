@@ -135,7 +135,7 @@ def generate_batch_data(images, gt_boxes, well_infos, resize, or_threshold, num,
     :param resize:
     :param or_threshold:
     :param num:
-    :param block_size:
+       :param block_size:
     :return:
         feature: N x C, N:samples, C:channels
         labels: N x 1
@@ -143,15 +143,12 @@ def generate_batch_data(images, gt_boxes, well_infos, resize, or_threshold, num,
     features = np.zeros((num, resize*resize), dtype=np.float32)
     labels = np.zeros(num, dtype=np.float32)
 
-
-
     label = 0
 
     for i in range(num):
         im = images[i]
         bboxes = gt_boxes[i]
         well_info = well_infos[i]  # well_centerx, well_centery, well_radius
-
         well_minx = well_info[0] - well_info[2]
         well_maxx = well_info[0] + well_info[2]
         well_miny = well_info[1] - well_info[2]
@@ -182,15 +179,15 @@ def generate_batch_data(images, gt_boxes, well_infos, resize, or_threshold, num,
                 label = 1
 
         labels[i] = label
-
+        #print(block_minx, block_maxx, block_miny, block_maxy, block_size)
         im_block = im[block_miny:block_maxy, block_minx:block_maxx]
+        #if label == 0:
+            ##cv2.imshow("im", im)
+            #cv2.imshow("im_block", im_block)
+            #cv2.waitKey(3000)
         im_block = cv2.resize(im_block, (resize, resize), fx=0, fy=0)
         feature = np.array(im_block, dtype=np.float32).reshape(1, -1)
         features[i, :] = feature[0, :] / 255.0
-
-        #if label == 1:
-        #    cv2.imshow("im", im_block)
-        #    cv2.waitKey(300)
         #print(label)
 
     return features, labels
