@@ -44,20 +44,26 @@ class Binarization:
     def __init__(self, method = "Otsu", threshold = 180):
         self.threshold = threshold
         self.method = method
-        self.lr = LogisticRegression(resume=True, paras_file="para.txt")
+        self.lr = LogisticRegression(resume=True, paras_file="./paras/para850000.txt")
 
     def compute_binary(self, im, well_infos):
-        if self.method == "Otsu":
+        if self.method == "Binary":
+            return self.Binary(im)
+        elif self.method == "Otsu":
             return self.Otsu(im)
         elif self.method == "LRB":
             return self.LRB(im, well_infos)
+
+    def Binary(self, im, threshold = 160):
+        ret, th = cv2.threshold(im, threshold, 255, cv2.THRESH_BINARY)
+        return th
 
     def Otsu(self, im):
         blur = cv2.GaussianBlur(im, (3, 3), 0)
         ret, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         return th
 
-    def LRB(self, im, well_infos, block_size = 12):
+    def LRB(self, im, well_infos, block_size = 24):
         w_x, w_y, r = well_infos
         height, width = im.shape
         binary = im.copy()
@@ -69,8 +75,10 @@ class Binarization:
                     x_max = int(w + block_size / 2)
                     y_min = int(h - block_size / 2)
                     y_max = int(h + block_size / 2)
-                    im_block = np.array(im[y_min:y_max, x_min:x_max], np.float32).reshape(1, -1) / 255.0
-                    pre = self.lr.predict(im_block, 0.5)
+                    im_block = im[y_min:y_max, x_min:x_max]
+                    im_block = cv2.resize(im_block, (12, 12))
+                    im_block = np.array(im_block, np.float32).reshape(1, -1) / 255.0
+                    pre = self.lr.predict(im_block, 0.7)
                     if pre:
                         #print(int(pre))
                         binary[h, w] = 0
