@@ -11,25 +11,28 @@ class ImageProcessor:
     def well_detection(self, gray):
         # gray = cv2.medianBlur(gray, 5)
         rows = gray.shape[0]
-        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 20, circles=1,
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 5,
                                    param1=240, param2=50,
                                    minRadius=95, maxRadius=105)
-
+        #print(circles)
+        """
+        muted when training
         if circles is not None:
-            circles = np.uint16(np.around(circles))
-            for i in circles[0, :]:
+            circles_int = np.uint16(np.around(circles))
+            for i in circles_int[0, :]:
                 center = (i[0], i[1])
                 # circle center
                 cv2.circle(gray, center, 1, (0, 255, 0), 3)
                 # circle outline
                 radius = i[2]
                 cv2.circle(gray, center, radius, (0, 255, 0), 3)
-        cv2.imshow("detected circles", gray)
-        cv2.waitKey(10000)
+        """
+        #cv2.imshow("detected circles", gray)
+        #cv2.waitKey(1000)
         if circles is not None:
             well_centerx = np.uint16(np.round(np.average(circles[0, :, 0])))
             well_centery = np.uint16(np.round(np.average(circles[0, :, 1])))
-            well_radius = np.uint16(np.round(np.average(circles[0, :, 2])*0.99))
+            well_radius = np.uint16(np.round(np.average(circles[0, :, 2])*0.98))
             return True, (well_centerx, well_centery, well_radius)
         else:
             return False, (240, 240, 70)
@@ -40,9 +43,12 @@ class ImageProcessor:
         #im_with_keypoints = self.sift.drawpoints(ori_im)
         if method == "sift":
             im_feature = self.sift.compute_sift(ori_im)
+        elif method == "Binary":
+            self.binarize.method = method
+            im_feature = self.binarize.compute_binary(ori_im, well_infos)
         elif method == "Otsu":
             self.binarize.method = method
-            im_feature = self.binarize.compute_binary(ori_im)
+            im_feature = self.binarize.compute_binary(ori_im, well_infos)
         elif method == "LRB":
             self.binarize.method = method
             im_feature = self.binarize.compute_binary(ori_im, well_infos)
@@ -51,4 +57,9 @@ class ImageProcessor:
     def meanshift_seg(self, ori_im):
         # TO DO
         pass
+
+    def blob_detection(self, binary):
+        image, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+        return image, contours, hierarchy
 
