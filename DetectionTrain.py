@@ -7,7 +7,7 @@ from sklearn.cluster import MeanShift, estimate_bandwidth
 from skimage.feature import hog
 from skimage.morphology import skeletonize
 from xml_reader import XML_Reader
-from Methods.LogisticRegression import LogisticRegression
+from Methods.LogisticRegression import LogisticRegression, LogisticRegressionTorch
 from ImageProcessing import ImageProcessor
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -39,8 +39,8 @@ else:
 
 
 if __name__ == '__main__':
-    path = './detection_test/Images/'
-    xml_base_path = './detection_test/annotation/'
+    path = './detection_test/multiFish/training/Images/'
+    xml_base_path = './detection_test/multiFish/training/annotation/'
     im_files = os.listdir(path)
     xml_reader = XML_Reader()
     needle_distances = 0
@@ -55,7 +55,8 @@ if __name__ == '__main__':
     images = []
     bboxes = []
     well_infos = []
-    LR = LogisticRegression(lr=0.01, num_iter=100000, fit_intercept=True)
+    LR = LogisticRegression(lr=[0.01, 0.0001], num_iter=1000000, fit_intercept=True)
+    #LR = LogisticRegressionTorch(lr=[0.01, 0.0001], resume=False, num_iter=1000000, fit_intercept=True)
     for ipath in im_files:
         video_cnt+=1
         # vpath = 'WT_150931_Speed25.avi'#video_files[10]''
@@ -91,7 +92,8 @@ if __name__ == '__main__':
 
         #cv2.imshow("gray", gray_masked)
         #cv2.waitKey(30)
-        images.append(gray)
+        images.append(gray_masked)
         bboxes.append(ground_truth_fishes + xml_reader.needles)
+    #print(np.round(np.average(np.array(bboxes), axis=0)))
     LR.fit(images, bboxes, well_infos)
     #print(np.round(np.average(np.array(bboxes), axis = 0)))
