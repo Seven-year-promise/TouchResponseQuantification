@@ -163,6 +163,10 @@ class Ui_mainWindow(QMainWindow):
         self.sift_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.sift_button.clicked.connect(self.sift_button_click)
 
+        self.save_button = QPushButton('Save Extraction')
+        self.save_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.save_button.clicked.connect(self.save_button_click)
+
         self.exit_button = QPushButton('EXIT')
         self.exit_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.exit_button.clicked.connect(self.exit_button_click)
@@ -185,9 +189,10 @@ class Ui_mainWindow(QMainWindow):
         self.im_processing_layout.addWidget(self.crop_button, 5, 1)
         self.im_processing_layout.addWidget(self.binarization_button, 6, 1)
         self.im_processing_layout.addWidget(self.sift_button, 7, 1)
-        self.im_processing_layout.addWidget(self.exit_button, 8, 1)
-        self.im_processing_layout.addWidget(self.pos_button, 9, 1)
-        self.im_processing_layout.addWidget(self.neg_button, 10, 1)
+        self.im_processing_layout.addWidget(self.save_button, 8, 1)
+        self.im_processing_layout.addWidget(self.exit_button, 9, 1)
+        self.im_processing_layout.addWidget(self.pos_button, 10, 1)
+        self.im_processing_layout.addWidget(self.neg_button, 11, 1)
 
     def init_file_block(self):
         self.file_paths_label = QLabel("File Paths")
@@ -333,6 +338,9 @@ class Ui_mainWindow(QMainWindow):
             success, frame = cap.read()
         self.video_frames = video_frames
         self.frame_number = frame_cnt
+        self.cropped_flag = False
+        self.binary_flag = False
+        self.sift_flag = False
 
     def video_player(self):
         self.video.setPixmap(self.im2qImg(self.video_frames[0]))
@@ -372,7 +380,7 @@ class Ui_mainWindow(QMainWindow):
         i = 0
         self.video_binary_frames.clear()
         for frame in self.video_cropped_frames:
-            frame_feature, _, _ = self.im_processor.feature_extraction(frame, method = "LRB", well_infos=self.well_infos)
+            frame_feature, _, _ = self.im_processor.feature_extraction(frame, method = "LRB", well_infos=self.well_infos) # mehotd: Binary, Otsu, LRB
             self.video_binary_frames.append(frame_feature)
             i += 1
             if i>5:
@@ -433,6 +441,18 @@ class Ui_mainWindow(QMainWindow):
         # self.msgbox.setDetailedText("The details are as follows:")
 
         self.msgbox.exec()
+
+    def save_button_click(self):
+        slider_value = self.slider.value()
+        if len(self.video_frames) > 1:
+            if self.cropped_flag:
+                cv2.imwrite("GUI_saved/cropped" + str(slider_value) + ".jpg", self.video_cropped_frames[slider_value - 1])
+            elif self.sift_flag:
+                cv2.imwrite("GUI_saved/sift" + str(slider_value) + ".jpg", self.video_sift_frames[slider_value - 1])
+            elif self.binary_flag:
+                cv2.imwrite("GUI_saved/binary" + str(slider_value) + ".jpg", self.video_binary_frames[slider_value - 1])
+            else:
+                cv2.imwrite("GUI_saved/ori" + str(slider_value) + ".jpg", self.video_frames[slider_value - 1])
 
     def exit_button_click(self):
         self.percentage_file.close()
