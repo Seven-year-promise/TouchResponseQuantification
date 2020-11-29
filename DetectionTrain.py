@@ -1,14 +1,10 @@
 import argparse
-from matplotlib import pyplot as plt
 import cv2
 import numpy as np
 import os
-from sklearn.cluster import MeanShift, estimate_bandwidth
-from skimage.feature import hog
-from skimage.morphology import skeletonize
 from xml_reader import XML_Reader
-from Methods.LogisticRegression import LogisticRegression, LogisticRegressionTorch
-from ImageProcessing import ImageProcessor
+from Methods.LogisticRegression import LogisticRegression
+from Methods.ImageProcessing import ImageProcessor
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--touching_part', type=str, default = 'tail',
