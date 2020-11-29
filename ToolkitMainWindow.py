@@ -4,9 +4,8 @@ from PyQt5.QtWidgets import *
 import pyqtgraph as pg
 
 from QtFunctions.Lines import QHLine, QVLine
-from ImageProcessing import ImageProcessor
+from Methods.ImageProcessing import ImageProcessor
 
-import sys
 import cv2
 import numpy as np
 import os
@@ -20,6 +19,7 @@ class Ui_mainWindow(QMainWindow):
         self.video_cropped_frames = []
         self.video_sift_frames =[]
         self.video_binary_frames = []
+        self.video_detected_frames = []
         self.frame_number = 10000
 
         self.distance_file = '_'
@@ -28,6 +28,7 @@ class Ui_mainWindow(QMainWindow):
         self.negative_flag = False
         self.cropped_flag = False
         self.binary_flag = False
+        self.detected_flag = False
         self.sift_flag = False
 
         self.position_value1 = 0
@@ -163,7 +164,11 @@ class Ui_mainWindow(QMainWindow):
         self.sift_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.sift_button.clicked.connect(self.sift_button_click)
 
-        self.save_button = QPushButton('Save Extraction')
+        self.detect_button = QPushButton('Detect Object')
+        self.detect_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.detect_button.clicked.connect(self.detect_button_click)
+
+        self.save_button = QPushButton('Save Image')
         self.save_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.save_button.clicked.connect(self.save_button_click)
 
@@ -189,10 +194,11 @@ class Ui_mainWindow(QMainWindow):
         self.im_processing_layout.addWidget(self.crop_button, 5, 1)
         self.im_processing_layout.addWidget(self.binarization_button, 6, 1)
         self.im_processing_layout.addWidget(self.sift_button, 7, 1)
-        self.im_processing_layout.addWidget(self.save_button, 8, 1)
-        self.im_processing_layout.addWidget(self.exit_button, 9, 1)
-        self.im_processing_layout.addWidget(self.pos_button, 10, 1)
-        self.im_processing_layout.addWidget(self.neg_button, 11, 1)
+        self.im_processing_layout.addWidget(self.detect_button, 8, 1)
+        self.im_processing_layout.addWidget(self.save_button, 9, 1)
+        self.im_processing_layout.addWidget(self.exit_button, 10, 1)
+        self.im_processing_layout.addWidget(self.pos_button, 11, 1)
+        self.im_processing_layout.addWidget(self.neg_button, 12, 1)
 
     def init_file_block(self):
         self.file_paths_label = QLabel("File Paths")
@@ -349,7 +355,7 @@ class Ui_mainWindow(QMainWindow):
         slider_value = self.slider.value()
         txt = str(slider_value)
         self.keyframe.setText(txt)
-        if len(self.video_frames) >1 :
+        if len(self.video_frames) > 1:
             if self.cropped_flag:
                 frame = self.video_cropped_frames[slider_value - 1]
                 frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
@@ -360,6 +366,12 @@ class Ui_mainWindow(QMainWindow):
                 self.video.setPixmap(self.im2qImg(frame_color))
             elif self.binary_flag:
                 frame = self.video_binary_frames[slider_value - 1]
+                #cv2.imshow("seed", frame)
+                #cv2.waitKey(0)
+                frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                self.video.setPixmap(self.im2qImg(frame_color))
+            elif self.detected_flag:
+                frame = self.video_detected_frames[slider_value - 1]
                 frame_color = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
                 self.video.setPixmap(self.im2qImg(frame_color))
             else:
@@ -380,10 +392,13 @@ class Ui_mainWindow(QMainWindow):
         i = 0
         self.video_binary_frames.clear()
         for frame in self.video_cropped_frames:
-            frame_feature, _, _ = self.im_processor.feature_extraction(frame, method = "LRB", well_infos=self.well_infos) # mehotd: Binary, Otsu, LRB
+            frame_feature, _, _ = self.im_processor.feature_extraction(frame,
+                                                                       threshold = self.bin_threshold,
+                                                                       method = "RG",
+                                                                       well_infos=self.well_infos) # mehotd: Binary, Otsu, LRB
             self.video_binary_frames.append(frame_feature)
             i += 1
-            if i>5:
+            if i>1:
                 break
         self.cropped_flag = False
         self.sift_flag = False
@@ -394,6 +409,29 @@ class Ui_mainWindow(QMainWindow):
         # self.msgbox.setDetailedText("The details are as follows:")
 
         self.msgbox.exec()
+        self.sliderchangeValue()
+
+    def detect_button_click(self):
+        # TO DO
+        i = 0
+        self.video_detected_frames.clear()
+        for ori, binary in zip(self.video_cropped_frames, self.video_binary_frames):
+            frame, _, _ = self.im_processor.blob_detection(ori, binary) # mehotd: Binary, Otsu, LRB
+            self.video_detected_frames.append(frame)
+            i += 1
+            if i>1:
+                break
+        self.cropped_flag = False
+        self.sift_flag = False
+        self.binary_flag = False
+        self.detected_flag = True
+        self.msgbox.setText("detect finished")
+        # self.msgbox.setInformativeText("This is additional information")
+        # self.msgbox.setWindowTitle("MessageBox demo")
+        # self.msgbox.setDetailedText("The details are as follows:")
+
+        self.msgbox.exec()
+        self.sliderchangeValue()
 
     def crop_button_click(self):
         self.video_cropped_frames.clear()
@@ -419,6 +457,7 @@ class Ui_mainWindow(QMainWindow):
         # self.msgbox.setDetailedText("The details are as follows:")
 
         self.msgbox.exec()
+        self.sliderchangeValue()
 
     def sift_button_click(self):
         self.video_sift_frames.clear()
@@ -441,6 +480,7 @@ class Ui_mainWindow(QMainWindow):
         # self.msgbox.setDetailedText("The details are as follows:")
 
         self.msgbox.exec()
+        self.sliderchangeValue()
 
     def save_button_click(self):
         slider_value = self.slider.value()
@@ -468,8 +508,10 @@ class Ui_mainWindow(QMainWindow):
         if event.buttons() == Qt.LeftButton:
             x = event.pos().x()
             y = event.pos().y()
+            print(x, y)
             x_txt = str(x)
             y_txt = str(y)
+            """
             if not self.position_flag1:
                 self.position_value1 = [x, y]
                 self.position1.setText(x_txt + ',' + y_txt)
@@ -501,6 +543,7 @@ class Ui_mainWindow(QMainWindow):
                 # rename() function will
                 # rename all the files
                 os.rename(src, dst)
+            """
 
 
     def setPosition(self, position):
