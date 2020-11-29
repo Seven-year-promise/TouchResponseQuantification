@@ -2,7 +2,9 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import cmp_to_key
-from Methods.LogisticRegression import LogisticRegression
+from LogisticRegression import LogisticRegression
+from RegionGrowing import Point, RegionGrow
+from skimage.morphology import skeletonize
 
 float_tolerance = 1e-7
 
@@ -45,14 +47,19 @@ class Binarization:
         self.threshold = threshold
         self.method = method
         self.lr = LogisticRegression(resume=True, paras_file="./paras/para850000.txt")
+        self.rg = RegionGrow()
 
-    def compute_binary(self, im, well_infos):
+    def compute_binary(self, im, threshold, well_infos = None):
         if self.method == "Binary":
             return self.Binary(im)
         elif self.method == "Otsu":
             return self.Otsu(im)
         elif self.method == "LRB":
             return self.LRB(im, well_infos)
+        elif self.method == "RG":
+            return self.RG(im, threshold)
+        else:
+            print("please select one method for binarization")
 
     def Binary(self, im, threshold = 160):
         ret, th = cv2.threshold(im, threshold, 255, cv2.THRESH_BINARY)
@@ -78,13 +85,53 @@ class Binarization:
                     im_block = im[y_min:y_max, x_min:x_max]
                     im_block = cv2.resize(im_block, (12, 12))
                     im_block = np.array(im_block, np.float32).reshape(1, -1) / 255.0
-                    pre = self.lr.predict(im_block, 0.7)
+                    pre = self.lr.predict(im_block, 0.95)
                     if pre:
                         #print(int(pre))
                         binary[h, w] = 0
                     else:
                         binary[h, w] = 255
         return binary
+
+    def RG(self, im, threshold):
+        #blur = cv2.GaussianBlur(im, (3, 3), 0)
+        blur = cv2.medianBlur(im, 5)
+        binary = self.rg.regionGrowApply(blur, [Point(200, 200)], threshold)
+        ret, labels = cv2.connectedComponents(binary)
+        blobs_raw = []
+        for label in range(1, ret):
+            coordinate = np.asarray(np.where(labels == label)).transpose()
+            blobs_raw.append(coordinate)
+        erosion = cv2.erode(binary, (3, 3), iterations=4)
+        ret, labels = cv2.connectedComponents(erosion)
+        blobs_tuned = []
+        for label in range(1, ret):
+            coordinate = np.asarray(np.where(labels == label)).transpose()
+            if coordinate.shape[0] >10:
+                blobs_tuned.append(coordinate)
+        final_blobs = select_blob(blobs_raw, blobs_tuned)
+        tuned_binary = np.ones(erosion.shape, np.uint8)
+        for fblob in final_blobs:
+            tuned_binary[fblob[:, 0], fblob[:, 1]] = 255
+        #skeleton = skeletonize(binary/255)
+        #skeleton = np.array(skeleton, np.uint8) * 255
+        #blur = cv2.medianBlur(erosion, 5)
+        #dilation = cv2.dilate(skeleton, (3, 3), iterations=3)
+        #erosion = cv2.dilate(binar
+        # y, (20, 20))
+        return erosion
+
+def select_blob(blobsA, blobsB): # blobs_raw, blobs_tuned
+    selected_blobs = []
+    for blobB in blobsB:
+        centerY, centerX = np.round(np.average(blobB, axis = 0))
+        centerY, centerX = (int(centerY), int(centerX))
+        for blobA in blobsA:
+            num = np.asarray(np.where(blobA[np.where(blobA[:, 0]==centerY)][:, 1] ==centerX)).shape[1]
+            if num > 0:
+                selected_blobs.append(blobA)
+                break
+    return selected_blobs
 
 #########################
 # Image pyramid related #
