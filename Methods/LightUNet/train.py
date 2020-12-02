@@ -5,13 +5,16 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import cv2
 import util
-import UNet.UNet
+from UNet import UNet
 import argparse
 import torchvision.transforms as transforms
 import time
+from collections import defaultdict
+import torch.nn.functional as F
+from loss import dice_loss
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--train_path', type=str, default='"dataset/',
+parser.add_argument('--train_path', type=str, default='dataset/',
                     help='enter the path for training')
 parser.add_argument('--test_path', type=str, default='data//random_2816//samples_for_test.csv',
                     help='enter the path for testing')
@@ -19,17 +22,17 @@ parser.add_argument('--eval_path', type=str, default='data//random_2816//samples
                     help='enter the path for evaluating')
 parser.add_argument('--model_path', type=str, default='models//Liebherr10000checkpoint.pth',
                     help='enter the path for trained model')
-parser.add_argument('--base_lr', type=float, default=0.001,
+parser.add_argument('--base_lr', type=float, default=0.0001,
                     help='enter the path for training')
-parser.add_argument('--batchsize', type=int, default=32,
-                    help='enter the batchsize for training')
+parser.add_argument('--batch_size', type=int, default=12,
+                    help='enter the batch size for training')
 parser.add_argument('--workers', type=int, default=6,
                     help='enter the number of workers for training')
 parser.add_argument('--weight_decay', type=float, default=0.0005,
                     help='enter the weight_decay for training')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='enter the momentum for training')
-parser.add_argument('--display', type=int, default=50,
+parser.add_argument('--display', type=int, default=2,
                     help='enter the display for training')
 parser.add_argument('--max_iter', type=int, default=160000,
                     help='enter the max iterations for training')
@@ -52,19 +55,51 @@ parser.add_argument('--lamda', type=float, default=0.0,
 parser.add_argument('--save_path', type=str, default='models/',
                     help='enter the path for training')
 
+
+
+def calc_loss(pred, target, metrics, bce_weight=0.5):
+    bce = F.binary_cross_entropy_with_logits(pred, target)
+
+    pred = F.sigmoid(pred)
+    dice = dice_loss(pred, target)
+
+    loss = bce * bce_weight + dice * (1 - bce_weight)
+
+    metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
+    metrics['dice'] += dice.data.cpu().numpy() * target.size(0)
+    metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
+
+    return loss
+
+def print_metrics(metrics, epoch_samples, phase):
+    outputs = []
+    for k in metrics.keys():
+        outputs.append("{}: {:4f}".format(k, metrics[k] / epoch_samples))
+
+    print("{}: {}".format(phase, ", ".join(outputs)))
+
+
 def train_net(model, args):
     img_path = args.train_path + "Images/"
-    anno_path = args.train_path + "annotation/"
+    ann_path = args.train_path + "annotation/"
 
     stride = 8
     cudnn.benchmark = True
-    train_loader = torch.utils.data.DataLoader( dataset_loader(cropped_size = 220, img_path = img_path, anno_path = anno_path),
+
+    trans = transforms.Compose([
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # imagenet
+    ])
+
+    train_loader = torch.utils.data.DataLoader( dataset_loader(cropped_size = 240, trans=trans, img_path = img_path, ann_path = ann_path),
                                                 batch_size=args.batch_size, shuffle=True,
                                                 num_workers=args.workers, pin_memory=True)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.base_lr) #SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
     criterion = nn.MSELoss().cuda()
 
+    device = (torch.device("cuda:0") if torch.cuda.is_available() else "cpu")
+    model.to(device)
     model.train()
+    print(model)
     iters = 0
     batch_time = util.AverageMeter()
     data_time = util.AverageMeter()
@@ -76,68 +111,44 @@ def train_net(model, args):
     # heat_weight = 1
 
     while iters < args.max_iter:
-        for i, (input, heatmap) in enumerate(train_loader):
-            learning_rate = util.adjust_learning_rate(optimizer, iters, args.base_lr, policy=args.lr_policy,\
-								policy_parameter=args.policy_parameter, multiple=args.multiple)
+        metrics = defaultdict(float)
+        epoch_samples = 0
+        for i, (input_im, heatmap) in enumerate(train_loader):
             data_time.update(time.time() - end)
+            input_var = torch.autograd.Variable(input_im).to(device)
+            heatmap_var = torch.autograd.Variable(heatmap).to(device)
 
-            input = input.cuda()
-            heatmap = heatmap.cuda()
-            input_var = torch.autograd.Variable(input)
-            heatmap_var = torch.autograd.Variable(heatmap)
+            heat = model(input_var)
+            #loss = dice_loss(heat, heatmap_var)
+            loss = calc_loss(heat, heatmap_var, metrics)
+            """
 
-            heat1, heat2, heat3, heat4, heat5, heat6 = model(input_var)
-            loss1 = criterion(heat1, heatmap_var) * heat_weight
-            loss2 = criterion(heat2, heatmap_var) * heat_weight
-            loss3 = criterion(heat3, heatmap_var) * heat_weight
-            loss4 = criterion(heat4, heatmap_var) * heat_weight
-            loss5 = criterion(heat5, heatmap_var) * heat_weight
-            loss6 = criterion(heat6, heatmap_var) * heat_weight
-            loss = loss1 + loss2 + loss3 + loss4 + loss5 + loss6
             losses.update(loss.data[0], input.size(0))
-            loss_list = [loss1 , loss2 , loss3 , loss4 , loss5 , loss6]
+            loss_list = [loss]
             for cnt, l in enumerate(loss_list):
                 losses_list[cnt].update(l.data[0], input.size(0))
-
+            """
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             batch_time.update(time.time() - end)
             end = time.time()
-
-
             iters += 1
-            if iters % args.display == 0:
-                print('Train Iteration: {0}\t'
-				      'Time {batch_time.sum:.3f}s / {1}iters, ({batch_time.avg:.3f})\t'
-				      'Data load {data_time.sum:.3f}s / {1}iters, ({data_time.avg:3f})\n'
-				      'Learning rate = {2}\n'
-				      'Loss = {loss.val:.8f} (ave = {loss.avg:.8f})\n'.format(
-					iters, args.display, learning_rate, batch_time=batch_time,
-					data_time=data_time, loss=losses))
-                for cnt in range(0, 6):
-                    print('Loss{0}_1 = {loss1.val:.8f} (ave = {loss1.avg:.8f})'.format(cnt + 1,loss1=losses_list[cnt]))
-                print(time.strftime(
-					'%Y-%m-%d %H:%M:%S -----------------------------------------------------------------------------------------------------------------\n',
-					time.localtime()))
+            if iters % args.display == 0: #
+                print('Train Iteration: ', iters, 'Learning rate: ', args.base_lr, 'Loss = ', loss.cpu().data.numpy())
 
                 batch_time.reset()
                 data_time.reset()
                 losses.reset()
-                for cnt in range(12):
-                    losses_list[cnt].reset()
 
-            if iters % 5000 == 0:
-                torch.save({
-					'iter': iters,
-					'state_dict': model.state_dict(),
-				},  str(iters) + '.pth.tar')
+            if iters % 1000 == 0:
+                torch.save({ 'iter': iters, 'state_dict': model.state_dict(), },  str(iters) + '.pth.tar')
 
             if iters == args.max_iter:
                 break
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
     args = parser.parse_args()
-    model = UNet(args)
+    model = UNet(n_class = 2)
+    model.double()
     train_net(model, args)
