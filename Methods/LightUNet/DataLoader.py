@@ -8,7 +8,7 @@ import cv2
 import csv
 import sys
 sys.path.append('..')
-from ImageProcessing import ImageProcessor
+from ImageProcessing import well_detection
 
 """
 label
@@ -26,8 +26,6 @@ class dataset_loader(data.Dataset):
 
         self.im_paths = os.listdir(self.im_file_path)
 
-        self.im_pressor = ImageProcessor()
-
         self.transform = trans
 
     def __getitem__(self, index):
@@ -36,7 +34,7 @@ class dataset_loader(data.Dataset):
         im_name = im_path[:-4]
         im = cv2.imread(self.im_file_path + im_path)
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        _, (well_x, well_y, _) = self.im_pressor.well_detection(gray)
+        _, (well_x, well_y, _) = well_detection(gray)
 
         x_min = int(well_x - self.cropped_size / 2)
         x_max = int(well_x + self.cropped_size / 2)
