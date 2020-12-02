@@ -1,18 +1,16 @@
 import os, sys
-from DataLoader import dataset_loader
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import cv2
-import util
-from UNet import UNet
+from Methods.LightUNet.UNet import UNet
 import argparse
 import torchvision.transforms as transforms
 import time
 from collections import defaultdict
 import torch.nn.functional as F
-from loss import dice_loss
-from ImageProcessing import well_detection
+from Methods.LightUNet.loss import dice_loss
+from Methods.ImageProcessing import well_detection
 
 import numpy as np
 
@@ -74,7 +72,7 @@ class UNetTest:
         self.input_anno_var = None
 
     def load_model(self):
-        checkpoint = torch.load(self.model_path)
+        checkpoint = torch.load(self.model_path, map_location=device)
         self.model.load_state_dict(checkpoint['state_dict'])
         print(self.model)
 
@@ -128,23 +126,28 @@ class UNetTest:
         heatmap_visual = heat[0, 0, :, :].cpu().data.numpy()
         needle_binary = np.zeros(heatmap_visual.shape, np.uint8)
         needle_binary[np.where(heatmap_visual>0.7)] = 255
-        print(needle_binary, needle_binary.shape)
-        cv2.imshow("needle", needle_binary)
-        cv2.waitKey(0)
+        #print(needle_binary, needle_binary.shape)
+        #cv2.imshow("needle", needle_binary)
+        #cv2.waitKey(0)
 
         heatmap_visual = heat[0, 1, :, :].cpu().data.numpy()
         fish_binary = np.zeros(heatmap_visual.shape, np.uint8)
         fish_binary[np.where(heatmap_visual > 0.7)] = 255
-        print(fish_binary, fish_binary.shape)
-        cv2.imshow("needle", fish_binary)
-        cv2.waitKey(0)
+        #print(fish_binary, fish_binary.shape)
+        #cv2.imshow("needle", fish_binary)
+        #cv2.waitKey(0)
+        return needle_binary, fish_binary
 
 
 
 if __name__ == '__main__':
+    time_cnt = time.time()
+
     unet_test = UNetTest(n_class=2, cropped_size=240, model_path="5000.pth.tar")
     unet_test.load_model()
     im = cv2.imread("dataset/Images/0.jpg")
     anno_im = cv2.imread("dataset/annotation/0_label.tif")
     unet_test.load_im(im, anno_im)
     unet_test.predict()
+    time_used = time.time() - time_cnt
+    print("used time", time_used)

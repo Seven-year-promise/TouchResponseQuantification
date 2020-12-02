@@ -7,8 +7,7 @@ from PIL import Image
 import cv2
 import csv
 import sys
-sys.path.append('..')
-from ImageProcessing import well_detection
+from Methods.ImageProcessing import well_detection
 
 """
 label

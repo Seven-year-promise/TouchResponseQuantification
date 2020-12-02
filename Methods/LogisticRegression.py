@@ -1,5 +1,5 @@
 import numpy as np
-from TrainDataReader import generate_batch_data
+from Methods.TrainDataReader import generate_batch_data
 import torch
 from torch.autograd import Variable
 from sklearn import preprocessing

@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from FeatureExtraction import SIFT, Binarization
+from Methods.FeatureExtraction import SIFT, Binarization
 
 
 

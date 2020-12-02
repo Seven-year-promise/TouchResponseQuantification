@@ -1,17 +1,17 @@
 import os, sys
-from DataLoader import dataset_loader
+from Methods.LightUNet.DataLoader import dataset_loader
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import cv2
-import util
-from UNet import UNet
+import Methods.LightUNet.util
+from Methods.LightUNet.UNet import UNet
 import argparse
 import torchvision.transforms as transforms
 import time
 from collections import defaultdict
 import torch.nn.functional as F
-from loss import dice_loss
+from Methods.LightUNet.loss import dice_loss
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_path', type=str, default='dataset/',

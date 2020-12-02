@@ -2,8 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import cmp_to_key
-from LogisticRegression import LogisticRegression
-from RegionGrowing import Point, RegionGrow
+from Methods.LogisticRegression import LogisticRegression
+from Methods.RegionGrowing import Point, RegionGrow
 from skimage.morphology import skeletonize
 
 float_tolerance = 1e-7
