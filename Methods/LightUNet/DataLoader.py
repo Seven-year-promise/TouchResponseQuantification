@@ -19,14 +19,16 @@ label
 
 class dataset_loader(data.Dataset):
 
-    def __init__(self, cropped_size, img_dir = "dataset/Images/", ann_path = "dataset/annotation/", transforms=None, sigma=15):
-        self.im_file_path = img_dir
+    def __init__(self, cropped_size, trans = None, img_path = "dataset/Images/", ann_path = "dataset/annotation/", transforms=None, sigma=15):
+        self.im_file_path = img_path
         self.anno_file_path = ann_path
         self.cropped_size = cropped_size
 
         self.im_paths = os.listdir(self.im_file_path)
 
         self.im_pressor = ImageProcessor()
+
+        self.transform = trans
 
     def __getitem__(self, index):
         # ---------------- read info -----------------------
@@ -40,7 +42,7 @@ class dataset_loader(data.Dataset):
         x_max = int(well_x + self.cropped_size / 2)
         y_min = int(well_y - self.cropped_size / 2)
         y_max = int(well_y + self.cropped_size / 2)
-        img = gray[y_min:y_max, x_min:x_max]
+        im_block = im[y_min:y_max, x_min:x_max, :]
 
         anno_path = self.anno_file_path + im_name + "_label.tif"
         anno_im = cv2.imread(anno_path)
@@ -61,14 +63,19 @@ class dataset_loader(data.Dataset):
         cv2.imshow("heatmap", heatmap_visual)
         cv2.waitKey(0)
         """
-        img = np.array(img, dtype=np.float32)
-        img -= 128.0
-        img /= 255.0
 
-        #img = torch.from_numpy(img.transpose((2, 0, 1)))
-        #heatmaps = torch.from_numpy(heatmaps.transpose((2, 0, 1)))
+        #img = reverse_transform(im_block)
+        #np.ones((im_block.shape[0], im_block.shape[1], 1))
+        #img[:, :, 0] = im_block
+        #img.astype(np.float32)
+        #img -= 128.0
+        #img /= 255.0
+        img = torch.from_numpy(im_block.transpose((2, 0, 1))).double() / 255
+        if self.transform is not None:
+            img = self.transform(img)
+        heatmaps = torch.from_numpy(heatmaps.transpose((2, 0, 1))).double()
 
-        # img = self.trasforms(img)
+
         # heatmaps = self.trasforms(heatmaps)
 
         return img, heatmaps
@@ -76,6 +83,16 @@ class dataset_loader(data.Dataset):
     def __len__(self):
         return len(self.im_paths)
 
+
+def reverse_transform(inp):
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    inp = (inp * 255).astype(np.uint8)
+
+    return inp
 
 def _croppad(img, kpt, center, w, h):
     num = len(kpt)
@@ -115,7 +132,6 @@ def _croppad(img, kpt, center, w, h):
     new_img[st_y: ed_y, st_x: ed_x, :] = img[or_st_y: or_ed_y, or_st_x: or_ed_x, :].copy()
 
     return np.ascontiguousarray(new_img), kpt
-
 
 def _get_keypoints(ann):
     kpt = np.zeros((len(ann) - 2, 3))
