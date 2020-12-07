@@ -1,10 +1,12 @@
 import os, sys
+import sys
+sys.path.append('../..')
 from Methods.LightUNet.DataLoader import dataset_loader
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import cv2
-import Methods.LightUNet.util
+import util
 from Methods.LightUNet.UNet import UNet
 import argparse
 import torchvision.transforms as transforms
