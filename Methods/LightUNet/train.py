@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from Methods.LightUNet.loss import dice_loss
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--train_path', type=str, default='dataset/',
+parser.add_argument('--train_path', type=str, default='dataset/train/',
                     help='enter the path for training')
 parser.add_argument('--test_path', type=str, default='data//random_2816//samples_for_test.csv',
                     help='enter the path for testing')

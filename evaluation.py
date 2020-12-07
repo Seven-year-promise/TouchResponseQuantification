@@ -35,6 +35,7 @@ def pixel_accuracy(eval_segm, gt_segm):
     else:
         pixel_accuracy_ = sum_n_ii / sum_t_i
 
+
     return pixel_accuracy_
 
 
@@ -201,11 +202,16 @@ class EvalSegErr(Exception):
 if __name__ == '__main__':
     time_cnt = time.time()
 
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="5000.pth.tar")
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/5000.pth.tar")
     unet_test.load_model()
     im = cv2.imread("Methods/LightUNet/dataset/Images/0.jpg")
     anno_im = cv2.imread("Methods/LightUNet/dataset/annotation/0_label.tif")
-    unet_test.load_im(im, anno_im)
-    unet_test.predict()
+    anno_im = anno_im[:, :, 1]
+    print(anno_im.shape)
+    unet_test.load_im(im)
+    out_binary = unet_test.predict()
+    accuracy = mean_accuracy(out_binary, anno_im)
+
+    print(accuracy)
     time_used = time.time() - time_cnt
     print("used time", time_used)
