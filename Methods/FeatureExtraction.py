@@ -43,32 +43,28 @@ class SIFT:
         return descriptors
 
 class Binarization:
-    def __init__(self, method = "Otsu", threshold = 180):
-        self.threshold = threshold
+    def __init__(self, method = "Otsu"):
         self.method = method
-        self.lr = LogisticRegression(resume=True, paras_file="./paras/para850000.txt")
-        self.rg = RegionGrow()
+        if self.method == "LRB":
+            self.lr = LogisticRegression(resume=True, paras_file="./paras/para850000.txt")
+        if self.method == "RG":
+            self.rg = RegionGrow()
 
-    def compute_binary(self, im, threshold, well_infos = None):
-        if self.method == "Binary":
-            return self.Binary(im)
-        elif self.method == "Otsu":
-            return self.Otsu(im)
-        elif self.method == "LRB":
-            return self.LRB(im, well_infos)
-        elif self.method == "RG":
-            return self.RG(im, threshold)
-        else:
-            print("please select one method for binarization")
+    def Binary(self, im, needle_thr = 30, fish_thr = 160):
+        ret, th = cv2.threshold(im, needle_thr, 255, cv2.THRESH_BINARY)
+        binary = np.zeros(th.shape, np.uint8)
+        binary[np.where(th == 0)] = 1
+        binary[np.where(th == 255)] = 0
 
-    def Binary(self, im, threshold = 160):
-        ret, th = cv2.threshold(im, threshold, 255, cv2.THRESH_BINARY)
-        return th
+        return binary
 
     def Otsu(self, im):
         blur = cv2.GaussianBlur(im, (3, 3), 0)
         ret, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        return th
+        binary = np.zeros(th.shape, np.uint8)
+        binary[np.where(th == 0)] = 1
+        binary[np.where(th == 255)] = 0
+        return binary
 
     def LRB(self, im, well_infos, block_size = 24):
         w_x, w_y, r = well_infos
@@ -110,16 +106,16 @@ class Binarization:
             if coordinate.shape[0] >10:
                 blobs_tuned.append(coordinate)
         final_blobs = select_blob(blobs_raw, blobs_tuned)
-        tuned_binary = np.ones(erosion.shape, np.uint8)
+        tuned_binary = np.zeros(erosion.shape, np.uint8)
         for fblob in final_blobs:
-            tuned_binary[fblob[:, 0], fblob[:, 1]] = 255
+            tuned_binary[fblob[:, 0], fblob[:, 1]] = 1
         #skeleton = skeletonize(binary/255)
         #skeleton = np.array(skeleton, np.uint8) * 255
         #blur = cv2.medianBlur(erosion, 5)
         #dilation = cv2.dilate(skeleton, (3, 3), iterations=3)
         #erosion = cv2.dilate(binar
         # y, (20, 20))
-        return erosion
+        return tuned_binary
 
 def select_blob(blobsA, blobsB): # blobs_raw, blobs_tuned
     selected_blobs = []

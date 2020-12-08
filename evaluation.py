@@ -6,9 +6,12 @@ Evaluation for image segmentation.
 
 import numpy as np
 import time
+import os
 from Methods.LightUNet.UNet import UNet
 from Methods.LightUNet.test import UNetTest
 import cv2
+from Methods.FeatureExtraction import Binarization
+from Methods.ImageProcessing import well_detection
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -50,6 +53,7 @@ def mean_accuracy(eval_segm, gt_segm):
     eval_mask, gt_mask = extract_both_masks(eval_segm, gt_segm, cl, n_cl)
 
     accuracy = list([0]) * n_cl
+    print(cl)
 
     for i, c in enumerate(cl):
         curr_eval_mask = eval_mask[i, :, :]
@@ -142,8 +146,10 @@ def extract_both_masks(eval_segm, gt_segm, cl, n_cl):
     return eval_mask, gt_mask
 
 
-def extract_classes(segm):
+def extract_classes(segm, background = False):
     cl = np.unique(segm)
+    if not background:
+        cl = cl[1:]
     n_cl = len(cl)
 
     return cl, n_cl
@@ -186,6 +192,133 @@ def check_size(eval_segm, gt_segm):
     if (h_e != h_g) or (w_e != w_g):
         raise EvalSegErr("DiffDim: Different dimensions of matrices!")
 
+def test_binarization(im_anno_list):
+    binarize = Binarization(method = "Binary")
+    one_frame = im_anno_list[0][0]
+    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
+    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
+
+    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
+    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
+    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
+    ave_acc = 0
+    ave_iu = 0
+    num = len(im_anno_list)
+    time_cnt = time.time()
+    for im_anno in im_anno_list:
+        im, anno_deedle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
+        gray_masked += mask2
+        binary = binarize.Binary(gray_masked, needle_thr=180)
+
+        anno = np.zeros(anno_deedle.shape, np.uint8)
+        anno[np.where(anno_deedle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        accuracy = mean_accuracy(binary, anno)
+        ave_acc += accuracy
+        iu = mean_IU(binary, anno)
+        ave_iu += iu
+    time_used = time.time() - time_cnt
+    print("average accuracy", ave_acc / num)
+    print("average iu", ave_iu / num)
+
+    print("time per frame", time_used / num)
+
+def test_Otsu(im_anno_list):
+    binarize = Binarization(method = "Otsu")
+    one_frame = im_anno_list[0][0]
+    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
+    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
+
+    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
+    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
+    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
+    ave_acc = 0
+    ave_iu = 0
+    num = len(im_anno_list)
+    time_cnt = time.time()
+    for im_anno in im_anno_list:
+        im, anno_deedle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
+        gray_masked += mask2
+        binary = binarize.Otsu(gray_masked)
+
+        anno = np.zeros(anno_deedle.shape, np.uint8)
+        anno[np.where(anno_deedle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        accuracy = mean_accuracy(binary, anno)
+        ave_acc += accuracy
+        iu = mean_IU(binary, anno)
+        ave_iu += iu
+    time_used = time.time() - time_cnt
+    print("average accuracy", ave_acc / num)
+    print("average iu", ave_iu / num)
+
+    print("time per frame", time_used / num)
+
+def test_RG(im_anno_list):
+    binarize = Binarization(method = "RG")
+    one_frame = im_anno_list[0][0]
+    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
+    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
+
+    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
+    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
+    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
+    ave_acc = 0
+    ave_iu = 0
+    num = len(im_anno_list)
+    time_cnt = time.time()
+    for im_anno in im_anno_list:
+        im, anno_deedle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
+        gray_masked += mask2
+        binary = binarize.RG(gray_masked, threshold = 5)
+
+        anno = np.zeros(anno_deedle.shape, np.uint8)
+        anno[np.where(anno_deedle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        accuracy = mean_accuracy(binary, anno)
+        ave_acc += accuracy
+        iu = mean_IU(binary, anno)
+        ave_iu += iu
+    time_used = time.time() - time_cnt
+    print("average accuracy", ave_acc / num)
+    print("average iu", ave_iu / num)
+
+    print("time per frame", time_used / num)
+
+def test_UNet(im_anno_list):
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/5000.pth.tar")
+    unet_test.load_model()
+    im = cv2.imread("Methods/LightUNet/dataset/Images/0.jpg")
+    anno_im = cv2.imread("Methods/LightUNet/dataset/annotation/0_label.tif")
+    anno_im = anno_im[:, :, 1]
+    print(anno_im.shape)
+    unet_test.load_im(im)
+    out_binary = unet_test.predict()
+    accuracy = mean_accuracy(out_binary, anno_im)
 
 '''
 Exceptions
@@ -200,18 +333,23 @@ class EvalSegErr(Exception):
         return repr(self.value)
 
 if __name__ == '__main__':
-    time_cnt = time.time()
+    test_im_path = "Methods/LightUNet/dataset/test/Images/"
+    test_anno_path = "Methods/LightUNet/dataset/test/annotation/"
+    ims_name = os.listdir(test_im_path)
+    annos_name = os.listdir(test_anno_path)
+    im_anno_list = []
+    for im_name in ims_name:
+        name = im_name[:-4]
+        im = cv2.imread(test_im_path + im_name)
+        anno = cv2.imread(test_anno_path + name + "_label.tif")
+        anno = anno[:, :, 1]
+        anno_needle = np.zeros(anno.shape, dtype=np.uint8)
+        anno_needle[np.where(anno == 1)] = 1
+        anno_fish = np.zeros(anno.shape, dtype=np.uint8)
+        anno_fish[np.where(anno == 2)] = 1
 
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/5000.pth.tar")
-    unet_test.load_model()
-    im = cv2.imread("Methods/LightUNet/dataset/Images/0.jpg")
-    anno_im = cv2.imread("Methods/LightUNet/dataset/annotation/0_label.tif")
-    anno_im = anno_im[:, :, 1]
-    print(anno_im.shape)
-    unet_test.load_im(im)
-    out_binary = unet_test.predict()
-    accuracy = mean_accuracy(out_binary, anno_im)
+        im_anno_list.append([im, anno_needle, anno_fish])
 
-    print(accuracy)
-    time_used = time.time() - time_cnt
-    print("used time", time_used)
+    #test_binarization(im_anno_list)
+    #test_Otsu(im_anno_list)
+    test_RG(im_anno_list)

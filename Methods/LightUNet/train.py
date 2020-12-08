@@ -26,7 +26,7 @@ parser.add_argument('--model_path', type=str, default='models//Liebherr10000chec
                     help='enter the path for trained model')
 parser.add_argument('--base_lr', type=float, default=0.0001,
                     help='enter the path for training')
-parser.add_argument('--batch_size', type=int, default=12,
+parser.add_argument('--batch_size', type=int, default=16,
                     help='enter the batch size for training')
 parser.add_argument('--workers', type=int, default=6,
                     help='enter the number of workers for training')
@@ -36,7 +36,7 @@ parser.add_argument('--momentum', type=float, default=0.9,
                     help='enter the momentum for training')
 parser.add_argument('--display', type=int, default=2,
                     help='enter the display for training')
-parser.add_argument('--max_iter', type=int, default=160000,
+parser.add_argument('--max_iter', type=int, default=6000,
                     help='enter the max iterations for training')
 parser.add_argument('--test_interval', type=int, default=50,
                     help='enter the test_interval for training')
@@ -48,7 +48,7 @@ parser.add_argument('--best_model', type=float, default=12345678.9,
                     help='enter the best_model for training')
 parser.add_argument('--lr_policy', type=str, default='multistep',
                     help='enter the lr_policy for training')
-parser.add_argument('--policy_parameter', type=dict, default={"stepvalue":[50000, 100000, 120000], "gamma": 0.33},
+parser.add_argument('--policy_parameter', type=dict, default={"stepvalue":[1000, 2000, 4000], "gamma": 0.33},
                     help='enter the policy_parameter for training')
 parser.add_argument('--epoch', type=int, default=400,
                     help='enter the path for training')

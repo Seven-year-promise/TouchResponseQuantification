@@ -39,22 +39,22 @@ def feature_extraction(ori_im, threshold = None, method = "Otsu", well_infos = N
     #im_with_keypoints = .sift.drawpoints(ori_im)
     if method == "sift":
         sift = SIFT()
-        im_feature = sift.compute_sift(ori_im)
+        needle, _ = sift.compute_sift(ori_im)
     else:
         binarize = Binarization()
         binarize.method = method
         if method == "Binary":
-            im_feature = binarize.compute_binary(ori_im, well_infos)
+            needle, fish = binarize.compute_binary(ori_im, well_infos)
         elif method == "Otsu":
-            im_feature = binarize.compute_binary(ori_im, well_infos)
+            needle, fish = binarize.compute_binary(ori_im, well_infos)
         elif method == "RG":
-            im_feature = binarize.compute_binary(ori_im, threshold)
+            needle, fish = binarize.compute_binary(ori_im, threshold)
         elif method == "LRB":
-            im_feature = binarize.compute_binary(ori_im, well_infos)
+            needle, fish = binarize.compute_binary(ori_im, well_infos)
         else:
             print("please select one method for feature extraction")
-            im_feature = ori_im
-    return im_feature, None, None #im_with_keypoints, .sift.keypoints, .sift.descriptors
+            needle, fish = ori_im, ori_im
+    return needle, fish, None #im_with_keypoints, .sift.keypoints, .sift.descriptors
 
 def meanshift_seg( ori_im):
     # TO DO
