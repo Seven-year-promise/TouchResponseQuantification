@@ -64,7 +64,6 @@ def mean_accuracy(eval_segm, gt_segm):
 
         if (t_i != 0):
             accuracy[i] = n_ii / t_i
-
     mean_accuracy_ = np.mean(accuracy)
     return mean_accuracy_
 
@@ -95,7 +94,10 @@ def mean_IU(eval_segm, gt_segm):
 
         IU[i] = n_ii / (t_i + n_ij - n_ii)
 
-    mean_IU_ = np.sum(IU) / n_cl_gt
+    if n_cl_gt != 0:
+        mean_IU_ = np.sum(IU) / n_cl_gt
+    else:
+        mean_IU_ = 0
     return mean_IU_
 
 
@@ -207,14 +209,14 @@ def test_binarization(im_anno_list):
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
-        im, anno_deedle, anno_fish = im_anno
+        im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
         gray_masked += mask2
         binary = binarize.Binary(gray_masked, needle_thr=180)
 
-        anno = np.zeros(anno_deedle.shape, np.uint8)
-        anno[np.where(anno_deedle == 1)] = 1
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
@@ -246,14 +248,14 @@ def test_Otsu(im_anno_list):
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
-        im, anno_deedle, anno_fish = im_anno
+        im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
         gray_masked += mask2
         binary = binarize.Otsu(gray_masked)
 
-        anno = np.zeros(anno_deedle.shape, np.uint8)
-        anno[np.where(anno_deedle == 1)] = 1
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
@@ -285,14 +287,14 @@ def test_LRB(im_anno_list):
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
-        im, anno_deedle, anno_fish = im_anno
+        im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
         gray_masked += mask2
         binary = binarize.LRB(gray_masked, well_infos=(well_centerx, well_centery, well_radius))
 
-        anno = np.zeros(anno_deedle.shape, np.uint8)
-        anno[np.where(anno_deedle == 1)] = 1
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
@@ -324,14 +326,14 @@ def test_RG(im_anno_list):
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
-        im, anno_deedle, anno_fish = im_anno
+        im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
         gray_masked += mask2
         binary = binarize.RG(gray_masked, threshold = 5)
 
-        anno = np.zeros(anno_deedle.shape, np.uint8)
-        anno[np.where(anno_deedle == 1)] = 1
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
@@ -356,14 +358,14 @@ def test_UNet(im_anno_list):
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
-        im, anno_deedle, anno_fish = im_anno
+        im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
         binary = unet_test.predict(threshold=0.9)
         binary[np.where(binary > 0)] = 1
 
-        anno = np.zeros(anno_deedle.shape, np.uint8)
-        anno[np.where(anno_deedle == 1)] = 1
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
@@ -380,6 +382,55 @@ def test_UNet(im_anno_list):
 
     print("time per frame", time_used / num)
 
+def test_UNet_detailed(im_anno_list):
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
+    unet_test.load_model()
+    ave_needle_acc = 0
+    ave_fish_acc = 0
+    ave_needle_iu = 0
+    ave_fish_iu = 0
+    num_needle = 0
+    num_fish = 0
+    num_im = len(im_anno_list)
+    time_cnt = time.time()
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+
+        unet_test.load_im(im)
+        binary = unet_test.predict(threshold=0.9)
+
+        if len(np.where(anno_needle == 1)[0]) > 0:
+            binary_needle = np.zeros(binary.shape, np.uint8)
+            binary_needle[np.where(binary == 1)] = 1
+            acc_needle = mean_accuracy(binary_needle, anno_needle)
+            ave_needle_acc += acc_needle
+            iu_needle = mean_IU(binary_needle, anno_needle)
+            ave_needle_iu += iu_needle
+            num_needle += 1
+
+        if len(np.where(anno_fish == 1)[0]) > 0:
+            binary_fish = np.zeros(binary.shape, np.uint8)
+            binary_fish[np.where(binary == 2)] = 1
+
+            acc_fish = mean_accuracy(binary_fish, anno_fish)
+            ave_fish_acc += acc_fish
+            iu_fish = mean_IU(binary_fish, anno_fish)
+            ave_fish_iu += iu_fish
+            num_fish += 1
+        # cv2.imshow("binary", binary*255)
+        # cv2.waitKey(0)
+        # cv2.imshow("anno", anno*255)
+        # cv2.waitKey(0)
+
+    time_used = time.time() - time_cnt
+    print("average needle accuracy", ave_needle_acc / num_needle)
+    print("average needle iu", ave_needle_iu / num_needle)
+
+    print("average fish accuracy", ave_fish_acc / num_fish)
+    print("average fish iu", ave_fish_iu / num_fish)
+
+    print("time per frame", time_used / num_im)
+
 '''
 Exceptions
 '''
@@ -393,8 +444,8 @@ class EvalSegErr(Exception):
         return repr(self.value)
 
 if __name__ == '__main__':
-    test_im_path = "Methods/LightUNet/dataset/test/Images/"
-    test_anno_path = "Methods/LightUNet/dataset/test/annotation/"
+    test_im_path = "Methods/LightUNet/dataset/train/Images/"
+    test_anno_path = "Methods/LightUNet/dataset/train/annotation/"
     ims_name = os.listdir(test_im_path)
     annos_name = os.listdir(test_anno_path)
     im_anno_list = []
@@ -412,6 +463,7 @@ if __name__ == '__main__':
 
     #test_binarization(im_anno_list)
     #test_Otsu(im_anno_list)
-    test_LRB(im_anno_list)
+    #test_LRB(im_anno_list)
     #(im_anno_list)
     #test_UNet(im_anno_list)
+    test_UNet_detailed(im_anno_list)

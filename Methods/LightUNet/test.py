@@ -103,7 +103,7 @@ class UNetTest:
 
         heatmap_visual = heat[0, 0, :, :].cpu().data.numpy()
         needle_binary = np.zeros(heatmap_visual.shape, np.uint8)
-        needle_binary[np.where(heatmap_visual>0.7)] = 1
+        needle_binary[np.where(heatmap_visual>threshold)] = 1
         out_binary[self.y_min:self.y_max, self.x_min:self.x_max] = needle_binary
         #print(needle_binary, needle_binary.shape)
         #cv2.imshow("needle", needle_binary)
