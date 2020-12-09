@@ -84,9 +84,9 @@ class Binarization:
                     pre = self.lr.predict(im_block, 0.95)
                     if pre:
                         #print(int(pre))
-                        binary[h, w] = 0
+                        binary[h, w] = 1
                     else:
-                        binary[h, w] = 255
+                        binary[h, w] = 0
         return binary
 
     def RG(self, im, threshold):

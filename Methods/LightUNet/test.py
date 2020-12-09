@@ -96,7 +96,7 @@ class UNetTest:
 
         self.input_var = torch.autograd.Variable(img).to(device)
 
-    def predict(self):
+    def predict(self, threshold):
         pred = self.model(self.input_var)
         heat = F.sigmoid(pred)
         out_binary = np.zeros(self.ori_im_size, np.uint8)
@@ -111,7 +111,7 @@ class UNetTest:
 
         heatmap_visual = heat[0, 1, :, :].cpu().data.numpy()
         fish_binary = np.zeros(heatmap_visual.shape, np.uint8)
-        fish_binary[np.where(heatmap_visual > 0.7)] = 2
+        fish_binary[np.where(heatmap_visual > threshold)] = 2
         out_binary[self.y_min:self.y_max, self.x_min:self.x_max] += fish_binary
         out_binary[np.where(out_binary>2)] = 2
         #print(fish_binary, fish_binary.shape)
