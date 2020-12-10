@@ -444,8 +444,8 @@ class EvalSegErr(Exception):
         return repr(self.value)
 
 if __name__ == '__main__':
-    test_im_path = "Methods/LightUNet/dataset/train/Images/"
-    test_anno_path = "Methods/LightUNet/dataset/train/annotation/"
+    test_im_path = "Methods/LightUNet/dataset/test/Images/"
+    test_anno_path = "Methods/LightUNet/dataset/test/annotation/"
     ims_name = os.listdir(test_im_path)
     annos_name = os.listdir(test_anno_path)
     im_anno_list = []

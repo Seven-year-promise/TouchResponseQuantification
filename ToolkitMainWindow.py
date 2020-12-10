@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import pyqtgraph as pg
 
 from QtFunctions.Lines import QHLine, QVLine
-from Methods.ImageProcessing import ImageProcessor
+from Methods.LightUNet.test import UNetTest
 
 import cv2
 import numpy as np
@@ -42,7 +42,6 @@ class Ui_mainWindow(QMainWindow):
 
         self.bin_threshold = 0
 
-        self.im_processor = ImageProcessor()
 
         self.msgbox = QMessageBox()
         self.msgbox.setIcon(QMessageBox.Information)
@@ -390,13 +389,19 @@ class Ui_mainWindow(QMainWindow):
     def binarization_button_click(self):
         # TO DO
         i = 0
+        unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
+        unet_test.load_model()
         self.video_binary_frames.clear()
-        for frame in self.video_cropped_frames:
-            frame_feature, _, _ = self.im_processor.feature_extraction(frame,
+        for frame in self.video_frames:
+            """
+            frame_feature, _, _ = self.im_processor.feature_extraction(frame, 
                                                                        threshold = self.bin_threshold,
                                                                        method = "RG",
                                                                        well_infos=self.well_infos) # mehotd: Binary, Otsu, LRB
-            self.video_binary_frames.append(frame_feature)
+            """
+            unet_test.load_im(frame)
+            binary = unet_test.predict(threshold=0.9)
+            self.video_binary_frames.append(binary*127)
             i += 1
             if i>1:
                 break

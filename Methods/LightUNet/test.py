@@ -80,7 +80,7 @@ class UNetTest:
     def load_im(self, im):
         # ---------------- read info -----------------------
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        _, (well_x, well_y, _) = well_detection(gray)
+        _, (well_x, well_y, _), gray = well_detection(gray)
 
         self.ori_im_size = gray.shape
 
@@ -89,6 +89,8 @@ class UNetTest:
         self.y_min = int(well_y - self.cropped_size / 2)
         self.y_max = int(well_y + self.cropped_size / 2)
         im_block = im[self.y_min:self.y_max, self.x_min:self.x_max, :]
+        #cv2.imshow("needle", im_block)
+        #cv2.waitKey(0)
         img = torch.from_numpy(im_block.transpose((2, 0, 1))).double() / 255
         img = self.trans(img)
         img.unsqueeze_(dim=0)
@@ -115,7 +117,7 @@ class UNetTest:
         out_binary[self.y_min:self.y_max, self.x_min:self.x_max] += fish_binary
         out_binary[np.where(out_binary>2)] = 2
         #print(fish_binary, fish_binary.shape)
-        #cv2.imshow("needle", fish_binary)
+        #cv2.imshow("fish", out_binary*127)
         #cv2.waitKey(0)
         return out_binary
 
