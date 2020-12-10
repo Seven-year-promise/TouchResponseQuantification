@@ -4,7 +4,7 @@ from Methods.FeatureExtraction import SIFT, Binarization
 
 
 
-def well_detection(gray, threshold = 50):
+def well_detection(im, gray, threshold = 50):
     # gray = cv2.medianBlur(gray, 5)
     rows = gray.shape[0]
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 5,
@@ -48,20 +48,21 @@ def well_detection(gray, threshold = 50):
     ret, th = cv2.threshold(gray_masked, threshold, 255, cv2.THRESH_BINARY)
     kernel = np.ones((50, 50), dtype=np.uint8)
     closing = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
-    gray_closing = cv2.bitwise_and(gray, gray, mask=closing)
+    im_closing = cv2.bitwise_and(im, im, mask=closing)
 
     white_indexes = np.where(closing == 255)
     well_centery = int(np.round(np.average(white_indexes[0])))
     well_centerx = int(np.round(np.average(white_indexes[1])))
     # third fine-tuned mask for background white
     closing_inv = cv2.bitwise_not(closing)
-    gray_closing_inv = closing_inv + gray_closing
+    closing_inv = np.array((closing_inv, closing_inv, closing_inv)).transpose(1, 2, 0)
+    im_closing_inv = closing_inv + im_closing
 
     cv2.circle(gray, (well_centerx, well_centery), 1, (0, 255, 0), 5)
-    #cv2.imshow("detected circles", gray)
-    #cv2.waitKey(1000)
+    cv2.imshow("detected circles", im_closing_inv)
+    cv2.waitKey(1000)
 
-    return True, (well_centerx, well_centery, well_radius), gray_closing_inv
+    return True, (well_centerx, well_centery, well_radius), im_closing_inv
 
 
 

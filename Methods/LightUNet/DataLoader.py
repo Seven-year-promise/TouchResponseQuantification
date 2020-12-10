@@ -34,13 +34,13 @@ class dataset_loader(data.Dataset):
         im_name = im_path[:-4]
         im = cv2.imread(self.im_file_path + im_path)
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        _, (well_x, well_y, _) = well_detection(gray)
+        _, (well_x, well_y, _), im_well = well_detection(gray)
 
         x_min = int(well_x - self.cropped_size / 2)
         x_max = int(well_x + self.cropped_size / 2)
         y_min = int(well_y - self.cropped_size / 2)
         y_max = int(well_y + self.cropped_size / 2)
-        im_block = im[y_min:y_max, x_min:x_max, :]
+        im_block = im_well[y_min:y_max, x_min:x_max, :]
 
         anno_path = self.anno_file_path + im_name + "_label.tif"
         anno_im = cv2.imread(anno_path)
