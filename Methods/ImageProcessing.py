@@ -58,9 +58,9 @@ def well_detection(im, gray, threshold = 50):
     closing_inv = np.array((closing_inv, closing_inv, closing_inv)).transpose(1, 2, 0)
     im_closing_inv = closing_inv + im_closing
 
-    cv2.circle(gray, (well_centerx, well_centery), 1, (0, 255, 0), 5)
-    cv2.imshow("detected circles", im_closing_inv)
-    cv2.waitKey(1000)
+    #cv2.circle(gray, (well_centerx, well_centery), 1, (0, 255, 0), 5)
+    #cv2.imshow("detected circles", im_closing_inv)
+    #cv2.waitKey(1000)
 
     return True, (well_centerx, well_centery, well_radius), im_closing_inv
 
