@@ -382,7 +382,7 @@ def test_UNet(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def test_UNet_detailed(im_anno_list):
+def test_UNet_detailed(im_anno_list, save = True):
     unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
     unet_test.load_model()
     ave_needle_acc = 0
@@ -393,11 +393,16 @@ def test_UNet_detailed(im_anno_list):
     num_fish = 0
     num_im = len(im_anno_list)
     time_cnt = time.time()
+    i = 0
     for im_anno in im_anno_list:
+        i += 1
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
         binary = unet_test.predict(threshold=0.9)
+        if save:
+            cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
+            cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", binary*127)
 
         if len(np.where(anno_needle == 1)[0]) > 0:
             binary_needle = np.zeros(binary.shape, np.uint8)
