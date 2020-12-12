@@ -46,7 +46,7 @@ def well_detection(im, gray, threshold = 50):
 
     # second fine-tuned mask
     ret, th = cv2.threshold(gray_masked, threshold, 255, cv2.THRESH_BINARY)
-    kernel = np.ones((50, 50), dtype=np.uint8)
+    kernel = np.ones((5, 5), dtype=np.uint8)
     closing = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
     im_closing = cv2.bitwise_and(im, im, mask=closing)
 

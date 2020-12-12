@@ -1,10 +1,13 @@
 import torch
 import torch.utils.data as data
+import torchvision.transforms.functional as TF
+import random
 import numpy as np
 import os
 import math
 from PIL import Image
 import cv2
+from PIL import Image
 import csv
 import sys
 sys.path.append('../..')
@@ -19,20 +22,34 @@ label
 
 class dataset_loader(data.Dataset):
 
-    def __init__(self, cropped_size, trans = None, img_path = "dataset/Images/", ann_path = "dataset/annotation/", transforms=None, sigma=15):
+    def __init__(self, cropped_size, input_trans = None, both_trans = None, img_path = "dataset/Images/", ann_path = "dataset/annotation/", sigma=15):
         self.im_file_path = img_path
         self.anno_file_path = ann_path
         self.cropped_size = cropped_size
 
         self.im_paths = os.listdir(self.im_file_path)
 
-        self.transform = trans
+        self.input_transform = input_trans
+        self.both_transform = both_trans
 
     def __getitem__(self, index):
         # ---------------- read info -----------------------
+        rotate_angle = np.random.randn(1)[0] * 360
         im_path = self.im_paths[index]
         im_name = im_path[:-4]
         im = cv2.imread(self.im_file_path + im_path)
+
+        anno_path = self.anno_file_path + im_name + "_label.tif"
+        anno_im = cv2.imread(anno_path)
+
+
+        if self.both_transform is not None:
+            im_pil = Image.fromarray(im)
+            anno_im_pil = Image.fromarray(anno_im)
+            #print(self.both_transform)
+            im_pil_trans, anno_im_pil_trans = self.both_transform(im_pil, anno_im_pil)
+            im = np.asarray(im_pil_trans)
+            anno_im = np.asarray(anno_im_pil_trans)
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         _, (well_x, well_y, _), im_well = well_detection(im, gray)
 
@@ -41,15 +58,15 @@ class dataset_loader(data.Dataset):
         y_min = int(well_y - self.cropped_size / 2)
         y_max = int(well_y + self.cropped_size / 2)
         im_block = im_well[y_min:y_max, x_min:x_max, :]
+        #cv2.imshow("im", im_block)
+        #cv2.waitKey(0)
 
-        anno_path = self.anno_file_path + im_name + "_label.tif"
-        anno_im = cv2.imread(anno_path)
         anno_im = anno_im[y_min:y_max, x_min:x_max, :]
         #anno_im[np.where(anno_im == 2)] = 255
         #cv2.imshow("tif", anno_im)
         #cv2.waitKey(0)
 
-        heatmaps = np.zeros((y_max-y_min, x_max - x_min, 2), dtype=np.double)
+        heatmaps = np.zeros((y_max - y_min, x_max - x_min, 2), dtype=np.double)
         heatmaps[:, :, 0] = np.array((anno_im == 1), dtype=np.double)[:, :, 0]
         heatmaps[:, :, 1] = np.array((anno_im == 2), dtype=np.double)[:, :, 0]
 
@@ -69,18 +86,26 @@ class dataset_loader(data.Dataset):
         #img -= 128.0
         #img /= 255.0
         img = torch.from_numpy(im_block.transpose((2, 0, 1))).double() / 255
-        if self.transform is not None:
-            img = self.transform(img)
+        if self.input_transform is not None:
+            img = self.input_transform(img)
+
         heatmaps = torch.from_numpy(heatmaps.transpose((2, 0, 1))).double()
-
-
-        # heatmaps = self.trasforms(heatmaps)
 
         return img, heatmaps
 
     def __len__(self):
         return len(self.im_paths)
 
+
+class MyRotationTransform:
+    """Rotate by one of the given angles."""
+
+    def __init__(self, angles):
+        self.angles = angles
+
+    def __call__(self, input, target):
+        angle = random.randint(self.angles[0], self.angles[1])
+        return TF.rotate(input, angle), TF.rotate(target, angle)
 
 def reverse_transform(inp):
     inp = inp.numpy().transpose((1, 2, 0))

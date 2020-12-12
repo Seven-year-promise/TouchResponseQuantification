@@ -14,6 +14,7 @@ import time
 from collections import defaultdict
 import torch.nn.functional as F
 from Methods.LightUNet.loss import dice_loss
+from Methods.LightUNet.DataLoader import MyRotationTransform
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--train_path', type=str, default='dataset/train/',
@@ -57,8 +58,6 @@ parser.add_argument('--lamda', type=float, default=0.0,
 parser.add_argument('--save_path', type=str, default='models/',
                     help='enter the path for training')
 
-
-
 def calc_loss(pred, target, metrics, bce_weight=0.5):
     bce = F.binary_cross_entropy_with_logits(pred, target)
 
@@ -88,11 +87,17 @@ def train_net(model, args):
     stride = 8
     cudnn.benchmark = True
 
-    trans = transforms.Compose([
+    input_trans = transforms.Compose([
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # imagenet
     ])
 
-    train_loader = torch.utils.data.DataLoader( dataset_loader(cropped_size = 240, trans=trans, img_path = img_path, ann_path = ann_path),
+    both_trans = MyRotationTransform(angles = (-180, 180))
+
+    train_loader = torch.utils.data.DataLoader( dataset_loader(cropped_size = 240,
+                                                               input_trans=input_trans,
+                                                               both_trans = both_trans,
+                                                               img_path = img_path,
+                                                               ann_path = ann_path),
                                                 batch_size=args.batch_size, shuffle=True,
                                                 num_workers=args.workers, pin_memory=True)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.base_lr) #SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
