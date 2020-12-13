@@ -23,7 +23,7 @@ parser.add_argument('--test_path', type=str, default='data//random_2816//samples
                     help='enter the path for testing')
 parser.add_argument('--eval_path', type=str, default='data//random_2816//samples_for_evaluation.csv',
                     help='enter the path for evaluating')
-parser.add_argument('--model_path', type=str, default='models//Liebherr10000checkpoint.pth',
+parser.add_argument('--model_path', type=str, default='6000.pth.tar',
                     help='enter the path for trained model')
 parser.add_argument('--base_lr', type=float, default=0.0001,
                     help='enter the path for training')
@@ -37,19 +37,19 @@ parser.add_argument('--momentum', type=float, default=0.9,
                     help='enter the momentum for training')
 parser.add_argument('--display', type=int, default=2,
                     help='enter the display for training')
-parser.add_argument('--max_iter', type=int, default=6000,
+parser.add_argument('--max_iter', type=int, default=10000,
                     help='enter the max iterations for training')
 parser.add_argument('--test_interval', type=int, default=50,
                     help='enter the test_interval for training')
 parser.add_argument('--topk', type=int, default=3,
                     help='enter the topk for training')
-parser.add_argument('--start_iters', type=int, default=0,
+parser.add_argument('--start_iters', type=int, default=6000,
                     help='enter the start_iters for training')
 parser.add_argument('--best_model', type=float, default=12345678.9,
                     help='enter the best_model for training')
 parser.add_argument('--lr_policy', type=str, default='multistep',
                     help='enter the lr_policy for training')
-parser.add_argument('--policy_parameter', type=dict, default={"stepvalue":[1000, 2000, 4000], "gamma": 0.33},
+parser.add_argument('--policy_parameter', type=dict, default={"stepvalue":[2000, 4000, 8000], "gamma": 0.33},
                     help='enter the policy_parameter for training')
 parser.add_argument('--epoch', type=int, default=400,
                     help='enter the path for training')
@@ -80,9 +80,11 @@ def print_metrics(metrics, epoch_samples, phase):
     print("{}: {}".format(phase, ", ".join(outputs)))
 
 
-def train_net(model, args):
+def train_net(model, args, resume = True):
     img_path = args.train_path + "Images/"
     ann_path = args.train_path + "annotation/"
+
+
 
     stride = 8
     cudnn.benchmark = True
@@ -106,8 +108,11 @@ def train_net(model, args):
     device = (torch.device("cuda:0") if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.train()
+    if resume:
+        checkpoint = torch.load(args.model_path, map_location=device)
+        model.load_state_dict(checkpoint['state_dict'])
     print(model)
-    iters = 0
+    iters = args.start_iters
     batch_time = util.AverageMeter()
     data_time = util.AverageMeter()
     losses = util.AverageMeter()

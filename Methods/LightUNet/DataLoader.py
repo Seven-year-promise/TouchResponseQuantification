@@ -41,7 +41,7 @@ class dataset_loader(data.Dataset):
 
         anno_path = self.anno_file_path + im_name + "_label.tif"
         anno_im = cv2.imread(anno_path)
-
+        anno_im = cv2.erode(anno_im, (3, 3), iterations=2)
 
         if self.both_transform is not None:
             im_pil = Image.fromarray(im)
@@ -70,14 +70,14 @@ class dataset_loader(data.Dataset):
         heatmaps[:, :, 0] = np.array((anno_im == 1), dtype=np.double)[:, :, 0]
         heatmaps[:, :, 1] = np.array((anno_im == 2), dtype=np.double)[:, :, 0]
 
-        """
-        heatmap_visual = np.array(heatmaps[:, :, 0], np.uint8) * 255
-        cv2.imshow("heatmap", heatmap_visual)
-        cv2.waitKey(0)
-        heatmap_visual = np.array(heatmaps[:, :, 1], np.uint8) * 255
-        cv2.imshow("heatmap", heatmap_visual)
-        cv2.waitKey(0)
-        """
+
+        #heatmap_visual = np.array(heatmaps[:, :, 0], np.uint8) * 255
+        #cv2.imshow("heatmap", heatmap_visual)
+        #cv2.waitKey(0)
+        #heatmap_visual = np.array(heatmaps[:, :, 1], np.uint8) * 255
+        #cv2.imshow("heatmap", heatmap_visual)
+        #cv2.waitKey(0)
+
 
         #img = reverse_transform(im_block)
         #np.ones((im_block.shape[0], im_block.shape[1], 1))

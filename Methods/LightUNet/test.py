@@ -11,6 +11,7 @@ from collections import defaultdict
 import torch.nn.functional as F
 from Methods.LightUNet.loss import dice_loss
 from Methods.ImageProcessing import well_detection
+from Methods.FeatureExtraction import select_blob
 
 import numpy as np
 
@@ -98,28 +99,56 @@ class UNetTest:
 
         self.input_var = torch.autograd.Variable(img).to(device)
 
+    def blob_tune(self, binary):
+        binary = binary * 255
+        ret, labels = cv2.connectedComponents(binary)
+        blobs_raw = []
+        for label in range(1, ret):
+            coordinate = np.asarray(np.where(labels == label)).transpose()
+            blobs_raw.append(coordinate)
+        erosion = cv2.erode(binary, (3, 3), iterations=4)
+        ret, labels = cv2.connectedComponents(erosion)
+        blobs_tuned = []
+        for label in range(1, ret):
+            coordinate = np.asarray(np.where(labels == label)).transpose()
+            if coordinate.shape[0] > 10:
+                blobs_tuned.append(coordinate)
+        final_blobs = select_blob(blobs_raw, blobs_tuned)
+        tuned_binary = np.zeros(erosion.shape, np.uint8)
+        for fblob in final_blobs:
+            tuned_binary[fblob[:, 0], fblob[:, 1]] = 1
+
+        return tuned_binary
+
     def predict(self, threshold):
         pred = self.model(self.input_var)
         heat = F.sigmoid(pred)
-        out_binary = np.zeros(self.ori_im_size, np.uint8)
+        out_needle = np.zeros(self.ori_im_size, np.uint8)
+        out_fish = np.zeros(self.ori_im_size, np.uint8)
 
         heatmap_visual = heat[0, 0, :, :].cpu().data.numpy()
         needle_binary = np.zeros(heatmap_visual.shape, np.uint8)
         needle_binary[np.where(heatmap_visual>threshold)] = 1
-        out_binary[self.y_min:self.y_max, self.x_min:self.x_max] = needle_binary
+        needle_binary = self.blob_tune(needle_binary)
+        out_needle[self.y_min:self.y_max, self.x_min:self.x_max] = needle_binary
+
         #print(needle_binary, needle_binary.shape)
         #cv2.imshow("needle", needle_binary)
         #cv2.waitKey(0)
 
         heatmap_visual = heat[0, 1, :, :].cpu().data.numpy()
         fish_binary = np.zeros(heatmap_visual.shape, np.uint8)
-        fish_binary[np.where(heatmap_visual > threshold)] = 2
-        out_binary[self.y_min:self.y_max, self.x_min:self.x_max] += fish_binary
-        out_binary[np.where(out_binary>2)] = 2
+        fish_binary[np.where(heatmap_visual > threshold)] = 1
+        fish_binary = self.blob_tune(fish_binary)
+        out_fish[self.y_min:self.y_max, self.x_min:self.x_max] = fish_binary
+
         #print(fish_binary, fish_binary.shape)
         #cv2.imshow("fish", out_binary*127)
         #cv2.waitKey(0)
-        return out_binary
+        return out_needle, out_fish
+
+    def get_keypoint(self, threshold):
+        out_needle, out_fish = self.predict(threshold=threshold)
 
 
 

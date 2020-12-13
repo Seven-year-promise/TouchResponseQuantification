@@ -399,27 +399,23 @@ def test_UNet_detailed(im_anno_list, save = True):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        binary = unet_test.predict(threshold=0.9)
+        needle_binary, fish_binary = unet_test.predict(threshold=0.9)
         if save:
             cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
             cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", binary*127)
 
         if len(np.where(anno_needle == 1)[0]) > 0:
-            binary_needle = np.zeros(binary.shape, np.uint8)
-            binary_needle[np.where(binary == 1)] = 1
-            acc_needle = mean_accuracy(binary_needle, anno_needle)
+            acc_needle = mean_accuracy(needle_binary, anno_needle)
             ave_needle_acc += acc_needle
-            iu_needle = mean_IU(binary_needle, anno_needle)
+            iu_needle = mean_IU(needle_binary, anno_needle)
             ave_needle_iu += iu_needle
             num_needle += 1
 
         if len(np.where(anno_fish == 1)[0]) > 0:
-            binary_fish = np.zeros(binary.shape, np.uint8)
-            binary_fish[np.where(binary == 2)] = 1
 
-            acc_fish = mean_accuracy(binary_fish, anno_fish)
+            acc_fish = mean_accuracy(fish_binary, anno_fish)
             ave_fish_acc += acc_fish
-            iu_fish = mean_IU(binary_fish, anno_fish)
+            iu_fish = mean_IU(fish_binary, anno_fish)
             ave_fish_iu += iu_fish
             num_fish += 1
         # cv2.imshow("binary", binary*255)
@@ -458,6 +454,7 @@ if __name__ == '__main__':
         name = im_name[:-4]
         im = cv2.imread(test_im_path + im_name)
         anno = cv2.imread(test_anno_path + name + "_label.tif")
+        anno = cv2.erode(anno, (3, 3), iterations=2)
         anno = anno[:, :, 1]
         anno_needle = np.zeros(anno.shape, dtype=np.uint8)
         anno_needle[np.where(anno == 1)] = 1
