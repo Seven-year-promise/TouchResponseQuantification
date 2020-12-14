@@ -13,6 +13,8 @@ import cv2
 from Methods.FeatureExtraction import Binarization
 from Methods.ImageProcessing import well_detection
 
+import matplotlib.pyplot as plt
+
 def pixel_accuracy(eval_segm, gt_segm):
     '''
     sum_i(n_ii) / sum_i(t_i)
@@ -53,7 +55,7 @@ def mean_accuracy(eval_segm, gt_segm):
     eval_mask, gt_mask = extract_both_masks(eval_segm, gt_segm, cl, n_cl)
 
     accuracy = list([0]) * n_cl
-    print(cl)
+    #print(cl)
 
     for i, c in enumerate(cl):
         curr_eval_mask = eval_mask[i, :, :]
@@ -383,7 +385,7 @@ def test_UNet(im_anno_list):
     print("time per frame", time_used / num)
 
 def test_UNet_detailed(im_anno_list, save = True):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/models2/6000.pth.tar")
     unet_test.load_model()
     ave_needle_acc = 0
     ave_fish_acc = 0
@@ -399,10 +401,10 @@ def test_UNet_detailed(im_anno_list, save = True):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9)
+        needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9, size_fish=44)
 
         if save:
-            save_im = np.array(needle_binary.shape, np.uint8)
+            save_im = np.zeros(needle_binary.shape, np.uint8)
             save_im[np.where(needle_binary == 1)] = 1
             save_im[np.where(fish_binary == 1)] = 2
             cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
@@ -416,7 +418,6 @@ def test_UNet_detailed(im_anno_list, save = True):
             num_needle += 1
 
         if len(np.where(anno_fish == 1)[0]) > 0:
-
             acc_fish = mean_accuracy(fish_binary, anno_fish)
             ave_fish_acc += acc_fish
             iu_fish = mean_IU(fish_binary, anno_fish)
@@ -436,6 +437,74 @@ def test_UNet_detailed(im_anno_list, save = True):
 
     print("time per frame", time_used / num_im)
 
+def test_UNet_select_size_thre(im_anno_list, save = False):
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/models2/6000.pth.tar")
+    unet_test.load_model()
+    ave_needle_accs = []
+    ave_fish_accs = []
+    ave_needle_ius = []
+    ave_fish_ius = []
+    for threshold in range(0, 70):
+        ave_needle_acc = 0
+        ave_fish_acc = 0
+        ave_needle_iu = 0
+        ave_fish_iu = 0
+        num_needle = 0
+        num_fish = 0
+        num_im = len(im_anno_list)
+        time_cnt = time.time()
+        i = 0
+        for im_anno in im_anno_list:
+            i += 1
+            im, anno_needle, anno_fish = im_anno
+
+            unet_test.load_im(im)
+            needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9, size_fish=threshold)
+
+            if save:
+                save_im = np.zeros(needle_binary.shape, np.uint8)
+                save_im[np.where(needle_binary == 1)] = 1
+                save_im[np.where(fish_binary == 1)] = 2
+                cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
+                cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", save_im*127)
+
+            if len(np.where(anno_needle == 1)[0]) > 0:
+                acc_needle = mean_accuracy(needle_binary, anno_needle)
+                ave_needle_acc += acc_needle
+                iu_needle = mean_IU(needle_binary, anno_needle)
+                ave_needle_iu += iu_needle
+                num_needle += 1
+
+            if len(np.where(anno_fish == 1)[0]) > 0:
+                acc_fish = mean_accuracy(fish_binary, anno_fish)
+                ave_fish_acc += acc_fish
+                iu_fish = mean_IU(fish_binary, anno_fish)
+                ave_fish_iu += iu_fish
+                num_fish += 1
+            # cv2.imshow("binary", binary*255)
+            # cv2.waitKey(0)
+            # cv2.imshow("anno", anno*255)
+            # cv2.waitKey(0)
+        ave_needle_acc = ave_needle_acc / num_needle
+        ave_needle_iu = ave_needle_iu / num_needle
+        ave_fish_acc = ave_fish_acc / num_fish
+        ave_fish_iu = ave_fish_iu / num_fish
+        print("average needle accuracy", ave_needle_acc)
+        print("average needle iu", ave_needle_iu)
+
+        print("average fish accuracy", ave_fish_acc)
+        print("average fish iu", ave_fish_iu)
+        ave_needle_accs.append(ave_needle_acc)
+        ave_needle_ius.append(ave_needle_iu)
+        ave_fish_accs.append(ave_fish_acc)
+        ave_fish_ius.append(ave_fish_iu)
+    plt.plot(ave_fish_accs)
+    plt.plot(ave_fish_ius)
+    plt.show()
+    time_used = time.time() - time_cnt
+
+
+    print("time per frame", time_used / num_im)
 '''
 Exceptions
 '''
@@ -458,7 +527,7 @@ if __name__ == '__main__':
         name = im_name[:-4]
         im = cv2.imread(test_im_path + im_name)
         anno = cv2.imread(test_anno_path + name + "_label.tif")
-        anno = cv2.erode(anno, (3, 3), iterations=2)
+        #anno = cv2.erode(anno, (3, 3), iterations=2)
         anno = anno[:, :, 1]
         anno_needle = np.zeros(anno.shape, dtype=np.uint8)
         anno_needle[np.where(anno == 1)] = 1
@@ -472,4 +541,5 @@ if __name__ == '__main__':
     #test_LRB(im_anno_list)
     #(im_anno_list)
     #test_UNet(im_anno_list)
-    test_UNet_detailed(im_anno_list, save=False)
+    test_UNet_detailed(im_anno_list, save=True)
+    #test_UNet_select_size_thre(im_anno_list)

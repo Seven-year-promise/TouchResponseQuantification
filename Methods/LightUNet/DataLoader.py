@@ -41,7 +41,7 @@ class dataset_loader(data.Dataset):
 
         anno_path = self.anno_file_path + im_name + "_label.tif"
         anno_im = cv2.imread(anno_path)
-        anno_im = cv2.erode(anno_im, (3, 3), iterations=2)
+        #anno_im = cv2.erode(anno_im, (3, 3), iterations=2)
 
         if self.both_transform is not None:
             im_pil = Image.fromarray(im)
