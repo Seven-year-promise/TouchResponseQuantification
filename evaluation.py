@@ -399,10 +399,14 @@ def test_UNet_detailed(im_anno_list, save = True):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary = unet_test.predict(threshold=0.9)
+        needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9)
+
         if save:
+            save_im = np.array(needle_binary.shape, np.uint8)
+            save_im[np.where(needle_binary == 1)] = 1
+            save_im[np.where(fish_binary == 1)] = 2
             cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
-            cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", binary*127)
+            cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", save_im*127)
 
         if len(np.where(anno_needle == 1)[0]) > 0:
             acc_needle = mean_accuracy(needle_binary, anno_needle)
@@ -468,4 +472,4 @@ if __name__ == '__main__':
     #test_LRB(im_anno_list)
     #(im_anno_list)
     #test_UNet(im_anno_list)
-    test_UNet_detailed(im_anno_list)
+    test_UNet_detailed(im_anno_list, save=False)
