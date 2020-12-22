@@ -401,14 +401,13 @@ def test_UNet_detailed(im_anno_list, save = True):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9, size_fish=44)
+        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=44)
 
         if save:
             save_im = np.zeros(needle_binary.shape, np.uint8)
             save_im[np.where(needle_binary == 1)] = 1
             save_im[np.where(fish_binary == 1)] = 2
-            cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
-            cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", save_im*127)
+            cv2.imwrite("GUI_saved/" + str(i) + "im_with_points.jpg", im_with_points)
 
         if len(np.where(anno_needle == 1)[0]) > 0:
             acc_needle = mean_accuracy(needle_binary, anno_needle)
@@ -444,7 +443,7 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
     ave_fish_accs = []
     ave_needle_ius = []
     ave_fish_ius = []
-    for threshold in range(0, 70):
+    for threshold in range(0, 70, 1):
         ave_needle_acc = 0
         ave_fish_acc = 0
         ave_needle_iu = 0
@@ -459,14 +458,13 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
             im, anno_needle, anno_fish = im_anno
 
             unet_test.load_im(im)
-            needle_binary, fish_binary = unet_test.get_keypoint(threshold=0.9, size_fish=threshold)
+            needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=threshold)
 
             if save:
                 save_im = np.zeros(needle_binary.shape, np.uint8)
                 save_im[np.where(needle_binary == 1)] = 1
                 save_im[np.where(fish_binary == 1)] = 2
-                cv2.imwrite("GUI_saved/" + str(i) + "ori.jpg", im)
-                cv2.imwrite("GUI_saved/" + str(i) + "binary.jpg", save_im*127)
+                cv2.imwrite("GUI_saved/" + str(i) + "im_with_points.jpg", im_with_points)
 
             if len(np.where(anno_needle == 1)[0]) > 0:
                 acc_needle = mean_accuracy(needle_binary, anno_needle)

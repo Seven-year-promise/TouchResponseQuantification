@@ -163,7 +163,7 @@ class UNetTest:
         #print(fish_binary, fish_binary.shape)
         #cv2.imshow("fish", out_binary*127)
         #cv2.waitKey(0)
-        return out_needle, out_fish, fish_blobs
+        return out_needle, fish_binary, fish_blobs
 
     def find_needle_point(self, needle_mask):
         """
@@ -225,27 +225,35 @@ class UNetTest:
         point1 = skeleton_cor[:, 0]
         point2 = skeleton_cor[:, -1]
         #theta = get_angle(point1, point2, closest_center)
-        fish_points = get_points(point1, point2, closest_center, percentages)
-        #im_skele[np.where(skeleton==1)] = [0,255,0]
+        slope, fish_points = get_points(point1, point2, closest_center, percentages)
+        im_skele[np.where(skeleton==1)] = [0,255,0]
+        cv2.imwrite("skeleton.png", im_skele)
         colors = [[0, 0, 255],
                   [0, 255, 0],
                   [255, 0, 0]]
         for f_p, c in zip(fish_points, colors):
+            s_y, s_x = get_starting_point(f_p, needle_center, -1/slope, radius=30)
+            im_skele = cv2.line(img=im_skele, pt1=(f_p[1], f_p[0]), pt2 = (s_x, s_y), color=c, thickness=1)
+            im_skele = cv2.line(img=im_skele, pt1=(n_x, n_y), pt2=(s_x, s_y), color=c, thickness=1)
             im_skele = cv2.circle(img = im_skele, center = (f_p[1], f_p[0]), radius =1, color = c, thickness = 1)
-        cv2.imshow("fish", im_skele)
-        cv2.waitKey(0)
-        return None
+        #cv2.imshow("fish", im_skele)
+        #cv2.waitKey(0)
+        return im_skele, fish_points
 
     def get_keypoint(self, threshold, size_fish):
         out_needle, out_fish, fish_blobs = self.predict(threshold=threshold, size = size_fish)
         needle_y, needle_x = self.find_needle_point(needle_mask = out_needle)
-        self.find_fish_points(fish_mask=out_fish, needle_center=(needle_y, needle_x),
-                              fish_blobs=fish_blobs, percentages=[0.05, 0.3, 0.7])
+        if len(fish_blobs)>0:
+            im_with_points, fish_points = self.find_fish_points(fish_mask=out_fish, needle_center=(needle_y, needle_x),
+                                  fish_blobs=fish_blobs, percentages=[0.05, 0.3, 0.7])
+        else:
+            im_with_points = self.ori_im,
+            fish_points = None
         #cv2.imshow("needle", out_needle*255)
         #cv2.imshow("fish", out_fish * 255)
         #cv2.waitKey(0)
 
-        return out_needle, out_fish
+        return out_needle, out_fish, im_with_points, fish_points
 
 def get_angle(point1, point2, fish_center):
     y1, x1 = point1
@@ -286,6 +294,8 @@ def get_points(point1, point2, fish_center, percentages):
     distance1 = (f_x - x1)**2 + (f_y - y1)**2
     distance2 = (f_x - x2)**2 + (f_y - y2)**2
 
+    k = (y2-y1) / (x2-x1 + 0.0000001) + 0.0000001
+
     if distance1 < distance2:
         top_head = point1
         tail_end = point2
@@ -298,7 +308,22 @@ def get_points(point1, point2, fish_center, percentages):
         p_x = int(np.round((1-p) * top_head[1] + p * tail_end[1]))
         percent_points.append([p_y, p_x])
     #print(point1, point2, fish_center, theta)
-    return percent_points
+    return k, percent_points
+
+def get_starting_point(key_point, needle_point, k, radius):
+
+    (y0, x0) = key_point
+    delta = math.sqrt(radius**2 / (1+k**2))
+    x1 = int(np.round(x0 + delta))
+    x2 = int(np.round(x0 - delta))
+    y1 = int(np.round(k*x1 + y0 - k*x0))
+    y2 = int(np.round(k*x2 + y0 - k*x0))
+
+    n_y, n_x = needle_point
+    distance1 = (n_x - x1) ** 2 + (n_y - y1) ** 2
+    distance2 = (n_x - x2) ** 2 + (n_y - y2) ** 2
+    (y, x) = (y1, x1) if distance1<distance2 else (y2, x2)
+    return y, x
 
 
 
