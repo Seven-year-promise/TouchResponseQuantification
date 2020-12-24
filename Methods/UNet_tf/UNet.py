@@ -152,41 +152,42 @@ class UNet(object):
         return optimizer
 
     def train(self):
-        if self.conf.reload_step > 0:
-            if not self.reload(self.conf.reload_step):
-                return
-            print('reload', self.conf.reload_step)
+        with tf.device(tf.DeviceSpec(device_type="GPU", device_index=0)):
+            if self.conf.reload_step > 0:
+                if not self.reload(self.conf.reload_step):
+                    return
+                print('reload', self.conf.reload_step)
 
-        images, labels = read_record(self.conf.datadir, self.conf.im_size, self.conf.batch_size)
+            images, labels = read_record(self.conf.datadir, self.conf.im_size, self.conf.batch_size)
 
-        tf.train.start_queue_runners(sess=self.sess)
-        print('Begin Train')
-        for train_step in range(1, self.conf.max_step + 1):
-            start_time = time.time()
+            tf.train.start_queue_runners(sess=self.sess)
+            print('Begin Train')
+            for train_step in range(1, self.conf.max_step + 1):
+                start_time = time.time()
 
-            x, y = self.sess.run([images, labels])
-            # summary
-            if train_step == 1 or train_step % self.conf.summary_interval == 0:
-                feed_dict = {self.images: x,
-                             self.annotations: y}
-                loss, acc, _, summary = self.sess.run(
-                    [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
-                    feed_dict=feed_dict)
-                print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
-                self.save_summary(summary, train_step + self.conf.reload_step)
-            # print 损失和准确性
-            else:
-                feed_dict = {self.images: x,
-                             self.annotations: y}
-                loss, acc, _ = self.sess.run(
-                    [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
-                print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
-            # 保存模型
-            if train_step % self.conf.save_interval == 0:
-                self.save(train_step + self.conf.reload_step)
-            end_time = time.time()
-            time_diff = end_time - start_time
-            print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
+                x, y = self.sess.run([images, labels])
+                # summary
+                if train_step == 1 or train_step % self.conf.summary_interval == 0:
+                    feed_dict = {self.images: x,
+                                 self.annotations: y}
+                    loss, acc, _, summary = self.sess.run(
+                        [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
+                        feed_dict=feed_dict)
+                    print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+                    self.save_summary(summary, train_step + self.conf.reload_step)
+                # print 损失和准确性
+                else:
+                    feed_dict = {self.images: x,
+                                 self.annotations: y}
+                    loss, acc, _ = self.sess.run(
+                        [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
+                    print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+                # 保存模型
+                if train_step % self.conf.save_interval == 0:
+                    self.save(train_step + self.conf.reload_step)
+                end_time = time.time()
+                time_diff = end_time - start_time
+                print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
 
     def predicts(self):
         if self.conf.reload_step > 0:
