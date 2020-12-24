@@ -385,7 +385,7 @@ def test_UNet(im_anno_list):
     print("time per frame", time_used / num)
 
 def test_UNet_detailed(im_anno_list, save = True):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/models2/6000.pth.tar")
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
     unet_test.load_model()
     ave_needle_acc = 0
     ave_fish_acc = 0
@@ -437,7 +437,7 @@ def test_UNet_detailed(im_anno_list, save = True):
     print("time per frame", time_used / num_im)
 
 def test_UNet_select_size_thre(im_anno_list, save = False):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/models2/6000.pth.tar")
+    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
     unet_test.load_model()
     ave_needle_accs = []
     ave_fish_accs = []
