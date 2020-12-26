@@ -8,6 +8,8 @@ import numpy as np
 import os
 from PIL import Image
 import tensorflow as tf
+from tensorflow.python.ops import clip_ops
+from tensorflow.python.ops import math_ops
 
 class UNet(object):
 
@@ -22,11 +24,11 @@ class UNet(object):
         # 输入图像
         self.images = tf.placeholder(tf.float32, shape=[None, self.conf.im_size, self.conf.im_size, 1], name='x')
         # 标注
-        self.annotations = tf.placeholder(tf.int64, shape=[None, self.conf.im_size, self.conf.im_size, 2], name='annotations')
+        self.annotations = tf.placeholder(tf.float32, shape=[None, self.conf.im_size, self.conf.im_size, 2], name='annotations')
         # 构建UNet网络结构
         self.predict = self.inference()
         # 损失函数，分类精度
-        self.loss_op = self.dice_loss()
+        self.loss_op = self.combined_loss()
         self.accuracy_op = self.accuracy()
         # 优化方法
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -109,7 +111,7 @@ class UNet(object):
         conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
         conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
 
-        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1, is_training=self.conf.is_training, stride=1, activation=False)
 
         return predict
 
@@ -119,26 +121,70 @@ class UNet(object):
         """
         # 标注 1通道-num_classes通道 one-hot
         with tf.variable_scope(scope):
-            targets = self.annotations # tf.one_hot(self.annotations, depth=self.conf.n_classes, axis=-1, name='one-hot')
-            losses = tf.nn.softmax_cross_entropy_with_logits(labels=targets, logits=self.predict)
+            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.annotations, logits=self.predict)
             loss_op = tf.reduce_mean(losses, name='loss/loss_op')
         return loss_op
 
-    def dice_loss(self, scope='dice_loss'):
+    def binary_crossentropy(self, from_logits=False):
+        """Binary crossentropy between an output tensor and a target tensor.
+        Arguments:
+          target: A tensor with the same shape as `output`.
+          output: A tensor.
+          from_logits: Whether `output` is expected to be a logits tensor.
+              By default, we consider that `output`
+              encodes a probability distribution.
+        Returns:
+          A tensor.
+        """
+        # Note: nn.sigmoid_cross_entropy_with_logits
+        # expects logits, Keras expects probabilities.
+        if not from_logits:
+            # transform back to logits
+            epsilon_ = 1e-4 #_to_tensor(epsilon(), self.predict.dtype.base_dtype)
+            output = clip_ops.clip_by_value(self.predict, epsilon_, 1 - epsilon_)
+            output = math_ops.log(output / (1 - output))
+            output = tf.cast(output, dtype=tf.float32)
+        return tf.nn.sigmoid_cross_entropy_with_logits(labels=self.annotations, logits=output)
+
+    def dice_loss(self, scope='dice_loss', smooth=1.):
         with tf.variable_scope(scope):
             y_true = tf.cast(self.annotations, tf.float32)
             y_pred = tf.math.sigmoid(self.predict)
             numerator = 2 * tf.reduce_sum(y_true * y_pred)
             denominator = tf.reduce_sum(y_true + y_pred)
-            loss_op = 1 - numerator / denominator
+            loss_op = 1 - (numerator+smooth) / (denominator + smooth)
 
+        return loss_op
+
+    def combined_loss(self, scope='combine_loss', smooth=1.):
+        with tf.variable_scope(scope):
+            y_true = tf.cast(self.annotations, tf.float32)
+            y_pred = tf.math.sigmoid(self.predict)
+            numerator = 2 * tf.reduce_sum(y_true * y_pred)
+            denominator = tf.reduce_sum(y_true + y_pred)
+            #numerator = 2 * tf.reduce_mean(tf.reduce_sum(y_true * y_pred, axis=2), axis=2)
+            #denominator = tf.reduce_sum(tf.reduce_sum(y_true, axis=2), axis=2) + tf.reduce_sum(tf.reduce_sum(y_pred, axis=2), axis=2)
+            dice_loss = 1 - (numerator+smooth) / (denominator + smooth)
+            dice_loss = tf.reduce_mean(dice_loss)
+            dice_loss *= 1-self.conf.bce_weight
+
+            #epsilon_ = 1e-4  # _to_tensor(epsilon(), self.predict.dtype.base_dtype)
+            #output = clip_ops.clip_by_value(self.predict, epsilon_, 1 - epsilon_)
+            #output = math_ops.log(output / (1 - output))
+            #output = tf.cast(output, dtype=tf.float32)
+            binary_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.annotations, logits=self.predict)
+            binary_loss = tf.reduce_mean(binary_loss)
+            binary_loss *= self.conf.bce_weight
+            loss_op = dice_loss + binary_loss#tf.concat([dice_loss, binary_loss], axis=-1)
+            #loss_op = tf.reduce_mean(loss_op)
         return loss_op
 
     def accuracy(self, scope='accuracy'):
         with tf.variable_scope(scope):
             preds = tf.cast(self.predict, dtype=tf.int64) #tf.argmax(self.predict, -1, name='accuracy/decode_pred')
+            targets = tf.cast(self.annotations, dtype=tf.int64)
             acc = 1.0 - tf.nn.zero_fraction(
-                tf.cast(tf.equal(preds, self.annotations), dtype=tf.int32))
+                tf.cast(tf.equal(preds, targets), dtype=tf.int32))
         return acc
 
     def train_op(self):
@@ -152,21 +198,25 @@ class UNet(object):
         return optimizer
 
     def train(self):
-        with tf.device(tf.DeviceSpec(device_type="GPU", device_index=0)):
-            if self.conf.reload_step > 0:
-                if not self.reload(self.conf.reload_step):
-                    return
-                print('reload', self.conf.reload_step)
+        if self.conf.reload_step > 0:
+            if not self.reload(self.conf.reload_step):
+                return
+            print('reload', self.conf.reload_step)
 
-            images, labels = read_record(self.conf.datadir, self.conf.im_size, self.conf.batch_size)
-
+        images, labels = read_record(self.conf.datadir, self.conf.im_size, self.conf.batch_size)
+        with tf.device("/device:XLA_GPU:0"):
             tf.train.start_queue_runners(sess=self.sess)
             print('Begin Train')
+
             for train_step in range(1, self.conf.max_step + 1):
                 start_time = time.time()
 
                 x, y = self.sess.run([images, labels])
                 # summary
+                #print(x)
+                #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
+                #cv2.imshow("show", show)
+                #cv2.waitKey(0)
                 if train_step == 1 or train_step % self.conf.summary_interval == 0:
                     feed_dict = {self.images: x,
                                  self.annotations: y}
@@ -175,19 +225,20 @@ class UNet(object):
                         feed_dict=feed_dict)
                     print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
                     self.save_summary(summary, train_step + self.conf.reload_step)
+                    end_time = time.time()
+                    time_diff = end_time - start_time
+                    print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
                 # print 损失和准确性
                 else:
                     feed_dict = {self.images: x,
                                  self.annotations: y}
                     loss, acc, _ = self.sess.run(
                         [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
-                    print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+                    #print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
                 # 保存模型
                 if train_step % self.conf.save_interval == 0:
                     self.save(train_step + self.conf.reload_step)
-                end_time = time.time()
-                time_diff = end_time - start_time
-                print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
+
 
     def predicts(self):
         if self.conf.reload_step > 0:
@@ -195,19 +246,20 @@ class UNet(object):
                 return
             print('reload', self.conf.reload_step)
 
-        standard = tf.image.per_image_standardization(self.images)
+        standard = self.images/255 - 0.5 #tf.image.per_image_standardization(self.images)
 
-        for n in range(70, 204):
+        for n in range(70, 100):
             img = os.path.join('data/render_test/Images/', str(n) + '.jpg')
-            img = Image.open(img)
-            img = np.array(img)
-            img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 3))
+            img = cv2.imread(img)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 1))
 
             img = self.sess.run([standard],
                                 feed_dict={
                                     self.images: img
                                 })
-            img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 3))
+            img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 1))
 
             label = self.sess.run([self.predict],
                                   feed_dict={
@@ -215,8 +267,10 @@ class UNet(object):
                                   })
             label = np.array(label)
             label = label.reshape((self.conf.im_size, self.conf.im_size, 2))
-            label = np.argmax(label, axis=2)
-            label = label * 255
+            #label = np.argmax(label, axis=2)
+            label = label[:, :, 1] * 255
+            cv2.imshow("label", label)
+            cv2.waitKey(0)
             print(n)
-            im = Image.fromarray(label.astype('uint8'))
-            im.save(os.path.join('data/render_test/predict/', str(n) + '.png'))
+            #im = Image.fromarray(label.astype('uint8'))
+            #im.save(os.path.join('data/render_test/predict/', str(n) + '.png'))

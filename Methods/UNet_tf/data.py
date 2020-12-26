@@ -75,7 +75,8 @@ def read_record(filename, im_size, batch_size):
 
     img = tf.cast(img, dtype=tf.float32)
     img = tf.reshape(img, [im_size, im_size, 1])
-    img = tf.image.per_image_standardization(img)
+    #img = tf.image.per_image_standardization(img)
+    img = img / 255 - 0.5
 
     min_after_dequeue = 30
     capacity = min_after_dequeue + 3 * batch_size
