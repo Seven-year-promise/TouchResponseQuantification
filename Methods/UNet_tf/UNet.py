@@ -1,4 +1,7 @@
 import sys
+
+from tensorflow_core.python.tools import freeze_graph
+
 sys.path.append('../..')
 from Methods.UNet_tf.util import *
 import time
@@ -54,8 +57,28 @@ class UNet(object):
 
     def save(self, step):
         print('saving', end=' ')
-        checkpoint_path = os.path.join(self.conf.modeldir, self.conf.model_name)
-        self.saver.save(self.sess, checkpoint_path, global_step=step)
+        if not os.path.exists(self.conf.modeldir):
+            os.makedirs(self.conf.modeldir)
+
+        # Save check point for graph frozen later
+        ckpt_filepath = self.save(directory=self.conf.modeldir, filename=self.conf.model_name)
+        pbtxt_filename = self.conf.model_name + '.pbtxt'
+        pbtxt_filepath = os.path.join(self.conf.modeldir, pbtxt_filename)
+        pb_filepath = os.path.join(self.conf.modeldir, self.conf.model_name + '.pb')
+        # This will only save the graph but the variables will not be saved.
+        # You have to freeze your model first.
+
+
+        self.saver.save(self.sess, ckpt_filepath, global_step=step)
+
+        tf.train.write_graph(graph_or_graph_def=self.sess.graph_def, logdir=self.conf.modeldir, name=pbtxt_filename, as_text=True)
+
+        # Freeze graph
+        # Method 1
+        freeze_graph.freeze_graph(input_graph=pbtxt_filepath, input_saver='', input_binary=False,
+                                  input_checkpoint=ckpt_filepath, output_node_names='cnn/output',
+                                  restore_op_name='save/restore_all', filename_tensor_name='save/Const:0',
+                                  output_graph=pb_filepath, clear_devices=True, initializer_nodes='')
 
     def reload(self, step):
         checkpoint_path = os.path.join(
