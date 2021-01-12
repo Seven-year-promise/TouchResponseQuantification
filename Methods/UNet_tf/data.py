@@ -14,7 +14,7 @@ def create_record(data_path, im_size, records_path):
     for im_name in ims_name:
         name = im_name[:-4]
         img = cv2.imread(train_im_path + im_name)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         anno = cv2.imread(train_anno_path + name + "_label.tif")
         # anno = cv2.erode(anno, (3, 3), iterations=2)
         anno = anno[:, :, 1]
@@ -61,7 +61,7 @@ def read_record(filename, im_size, batch_size):
     img = tf.cast(img, dtype=tf.int32)
     label = tf.cast(label, dtype=tf.float32)
 
-    img = tf.reshape(img, [im_size, im_size, 1])
+    img = tf.reshape(img, [im_size, im_size, 3])
     label = tf.reshape(label, [im_size, im_size, 2])
 
     #data = tf.concat([img, label], axis=2)
@@ -74,9 +74,9 @@ def read_record(filename, im_size, batch_size):
     #label = data[1]
 
     img = tf.cast(img, dtype=tf.float32)
-    img = tf.reshape(img, [im_size, im_size, 1])
+    img = tf.reshape(img, [im_size, im_size, 3])
     #img = tf.image.per_image_standardization(img)
-    img = img / 255 - 0.5
+    #img = img / 255 - 0.5
 
     min_after_dequeue = 30
     capacity = min_after_dequeue + 3 * batch_size
@@ -89,7 +89,7 @@ def read_record(filename, im_size, batch_size):
 
 
 if __name__ == '__main__':
-    if not os.path.exists('./data/render_train/train.tfrecords'):
-        create_record('data/render_train/', 240, './data/render_train/train.tfrecords')
+    if not os.path.exists('./data/train/train.tfrecords'):
+        create_record('data/train/', 480, './data/train/train.tfrecords')
     else:
         print('TFRecords already exists!')

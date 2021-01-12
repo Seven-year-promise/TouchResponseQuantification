@@ -74,7 +74,7 @@ def new_biases(length):
 
 
 # Convolutional layer
-def conv(input, shape, stddev, is_training, stride, activation=True):
+def conv(input, shape, stddev, is_training, stride, name=None, activation=True):
     """
     :param stride: stride
     :param is_training: 是否训练
@@ -84,10 +84,11 @@ def conv(input, shape, stddev, is_training, stride, activation=True):
     :param activation: activation function
     :return:
     """
+
     weights = new_weights(shape, stddev)
     biases = new_biases(shape[-1])
     layer = tf.nn.conv2d(input=input, filter=weights, strides=[1, stride, stride, 1], padding='SAME')
-    layer += biases
+    layer = tf.math.add(layer, biases, name=name)
     #layer = batch_normalization(layer, training=is_training)
     if activation:
         layer = tf.nn.relu(layer)

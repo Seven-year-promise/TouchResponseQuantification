@@ -7,13 +7,19 @@ Evaluation for image segmentation.
 import numpy as np
 import time
 import os
-from Methods.LightUNet.UNet import UNet
-from Methods.LightUNet.test import UNetTest
+from Methods.UNet_tf.test import UNetTestTF
 import cv2
 from Methods.FeatureExtraction import Binarization
 from Methods.ImageProcessing import well_detection
 
 import matplotlib.pyplot as plt
+
+binarize = Binarization(method = "Binary")
+ostu = Binarization(method = "Otsu")
+lrb = Binarization(method = "LRB")
+rg = Binarization(method = "RG")
+unet_test = UNetTestTF()
+unet_test.model.load_graph(model_path="Methods/UNet_tf/models/UNet18000.pb")
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -196,16 +202,74 @@ def check_size(eval_segm, gt_segm):
     if (h_e != h_g) or (w_e != w_g):
         raise EvalSegErr("DiffDim: Different dimensions of matrices!")
 
-def test_binarization(im_anno_list):
-    binarize = Binarization(method = "Binary")
-    one_frame = im_anno_list[0][0]
-    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
-    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
+def get_blobs(num, labels):
+    blobs_raw = []
+    for n in range(1, num):
+        coordinate = np.where(labels == n)
+        blobs_raw.append(coordinate)
 
-    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
-    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
-    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
-    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
+    return blobs_raw
+
+def get_roi(blobA, blobB, ori_shape):
+    maskA = np.zeros(ori_shape, np.uint8)
+    maskB = np.zeros(ori_shape, np.uint8)
+    maskA[blobA] = 1
+    maskB[blobB] = 1
+    #cv2.imshow("maskA", maskA*255)
+    #cv2.imshow("maskB", maskB*255)
+    #cv2.waitKey(0)
+    AB = np.sum(np.logical_and(maskA, maskB))
+    A = np.sum(maskA)
+    B = np.sum(maskB)
+    #print(A, B, AB)
+
+    return AB / (A + B - AB)
+
+def recall_false_ratio(eval_segm, gt_segm, threshold):
+    '''
+    recall_ratio: TP / (TP + TN)
+    false_ratio: FP / (TP + FP)
+    correct_ratio: CP / (TP + FP)
+    '''
+
+    check_size(eval_segm, gt_segm)
+
+    eval_ret, eval_labels = cv2.connectedComponents(eval_segm)
+    #cv2.imshow("label", np.array(eval_labels*(255/eval_ret), np.uint8))
+    gt_ret, gt_labels = cv2.connectedComponents(gt_segm)
+    eval_blobs = get_blobs(eval_ret, eval_labels)
+    gt_blobs = get_blobs(gt_ret, gt_labels)
+
+    eval_num = len(eval_blobs)
+    gt_num = len(gt_blobs)
+    #print("BEGIN", gt_ret, eval_ret)
+    eval_found_flag = np.zeros(eval_num, np.uint8)
+    gt_found_flag = np.zeros(gt_num, np.uint8)
+
+    for g_n in range(gt_num):
+        gt_blob = gt_blobs[g_n]
+        for e_n in range(eval_num):
+            eval_blob = eval_blobs[e_n]
+            roi = get_roi(gt_blob, eval_blob, eval_segm.shape)
+            #print("roi", roi)
+            if roi > threshold:
+                gt_found_flag[g_n] = 1
+                eval_found_flag[e_n] = 1
+            #print(gt_found_flag)
+
+    #print("END FOR ONE")
+    TP = np.sum(gt_found_flag)
+    TN = gt_num- TP
+    FP = eval_num - np.sum(eval_found_flag)
+    CP = np.sum(eval_found_flag)
+
+    recall_ratio = TP / (gt_num)
+    false_ratio = CP / (eval_num)
+
+
+    return recall_ratio, false_ratio
+
+def test_binarization(im_anno_list):
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -213,9 +277,9 @@ def test_binarization(im_anno_list):
     for im_anno in im_anno_list:
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
-        gray_masked += mask2
-        binary = binarize.Binary(gray_masked, needle_thr=180)
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = binarize.Binary(im_well, needle_thr=180)
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
@@ -234,17 +298,37 @@ def test_binarization(im_anno_list):
     print("average iu", ave_iu / num)
 
     print("time per frame", time_used / num)
+
+def binarization_recall_false_ratio(im_anno_list, threshold):
+
+    ave_recall_ratio = 0
+    ave_false_ratio = 0
+    num = len(im_anno_list)
+
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = binarize.Binary(im_well, needle_thr=180)
+
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
+        ave_recall_ratio += recall_ratio
+        ave_false_ratio += false_ratio
+
+
+    return ave_recall_ratio/num, ave_false_ratio/num
 
 def test_Otsu(im_anno_list):
-    binarize = Binarization(method = "Otsu")
-    one_frame = im_anno_list[0][0]
-    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
-    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
-
-    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
-    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
-    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
-    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -252,9 +336,9 @@ def test_Otsu(im_anno_list):
     for im_anno in im_anno_list:
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
-        gray_masked += mask2
-        binary = binarize.Otsu(gray_masked)
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = ostu.Otsu(im_well)
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
@@ -273,17 +357,35 @@ def test_Otsu(im_anno_list):
     print("average iu", ave_iu / num)
 
     print("time per frame", time_used / num)
+
+def Otsu_recall_false_ratio(im_anno_list, threshold):
+    ave_recall_ratio = 0
+    ave_false_ratio = 0
+    num = len(im_anno_list)
+
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+
+        binary = ostu.Otsu(im_well)
+
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
+        ave_recall_ratio += recall_ratio
+        ave_false_ratio += false_ratio
+
+    return ave_recall_ratio / num, ave_false_ratio / num
 
 def test_LRB(im_anno_list):
-    binarize = Binarization(method = "LRB")
-    one_frame = im_anno_list[0][0]
-    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
-    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
-
-    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
-    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
-    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
-    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -291,9 +393,9 @@ def test_LRB(im_anno_list):
     for im_anno in im_anno_list:
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
-        gray_masked += mask2
-        binary = binarize.LRB(gray_masked, well_infos=(well_centerx, well_centery, well_radius))
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = lrb.LRB(im_well, well_infos=(well_centerx, well_centery, well_radius))
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
@@ -312,17 +414,36 @@ def test_LRB(im_anno_list):
     print("average iu", ave_iu / num)
 
     print("time per frame", time_used / num)
+
+def LRB_recall_false_ratio(im_anno_list, threshold):
+
+    ave_recall_ratio = 0
+    ave_false_ratio = 0
+    num = len(im_anno_list)
+
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = lrb.LRB(im_well, well_infos=(well_centerx, well_centery, well_radius))
+
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
+        ave_recall_ratio += recall_ratio
+        ave_false_ratio += false_ratio
+
+    return ave_recall_ratio / num, ave_false_ratio / num
 
 def test_RG(im_anno_list):
-    binarize = Binarization(method = "RG")
-    one_frame = im_anno_list[0][0]
-    one_frame_gray = cv2.cvtColor(one_frame, cv2.COLOR_BGR2GRAY)
-    success, (well_centerx, well_centery, well_radius) = well_detection(one_frame_gray)
 
-    mask = np.zeros(one_frame_gray.shape[:2], dtype="uint8")
-    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
-    mask2 = np.ones(one_frame_gray.shape[:2], dtype="uint8") * 255
-    cv2.circle(mask2, (well_centerx, well_centery), well_radius, 0, -1)
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -330,9 +451,9 @@ def test_RG(im_anno_list):
     for im_anno in im_anno_list:
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        gray_masked = cv2.bitwise_and(im_gray, im_gray, mask=mask)
-        gray_masked += mask2
-        binary = binarize.RG(gray_masked, threshold = 5)
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = rg.RG(im_well, threshold = 5)
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
@@ -352,9 +473,33 @@ def test_RG(im_anno_list):
 
     print("time per frame", time_used / num)
 
+def RG_recall_false_ratio(im_anno_list, threshold):
+    ave_recall_ratio = 0
+    ave_false_ratio = 0
+    num = len(im_anno_list)
+
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+        im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        binary = rg.RG(im_well, threshold = 5)
+
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
+        ave_recall_ratio += recall_ratio
+        ave_false_ratio += false_ratio
+
+    return ave_recall_ratio / num, ave_false_ratio / num
+
 def test_UNet(im_anno_list):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
-    unet_test.load_model()
+
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -363,8 +508,10 @@ def test_UNet(im_anno_list):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        binary = unet_test.predict(threshold=0.9)
-        binary[np.where(binary > 0)] = 1
+        needle_binary, fish_binary = unet_test.predict(threshold=0.9)
+        binary = np.zeros(needle_binary.shape, np.uint8)
+        binary[np.where(needle_binary > 0)] = 1
+        binary[np.where(fish_binary > 0)] = 1
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
@@ -384,9 +531,34 @@ def test_UNet(im_anno_list):
 
     print("time per frame", time_used / num)
 
+def UNet_recall_false_ratio(im_anno_list, threshold):
+    ave_recall_ratio = 0
+    ave_false_ratio = 0
+    num = len(im_anno_list)
+
+    for im_anno in im_anno_list:
+        im, anno_needle, anno_fish = im_anno
+
+        unet_test.load_im(im)
+        needle_binary, fish_binary, _ = unet_test.predict(threshold=0.9)
+        binary = np.zeros(needle_binary.shape, np.uint8)
+        binary[np.where(needle_binary > 0)] = 1
+        binary[np.where(fish_binary > 0)] = 1
+
+        anno = np.zeros(anno_needle.shape, np.uint8)
+        anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
+        ave_recall_ratio += recall_ratio
+        ave_false_ratio += false_ratio
+
+    return ave_recall_ratio / num, ave_false_ratio / num
+
 def test_UNet_detailed(im_anno_list, save = True):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
-    unet_test.load_model()
     ave_needle_acc = 0
     ave_fish_acc = 0
     ave_needle_iu = 0
@@ -436,9 +608,48 @@ def test_UNet_detailed(im_anno_list, save = True):
 
     print("time per frame", time_used / num_im)
 
+def UNet_detailed_recall_false_ratio(im_anno_list, threshold):
+    ave_needle_recall_ratio = 0
+    ave_fish_recall_ratio = 0
+    ave_needle_false_ratio = 0
+    ave_fish_false_ratio = 0
+    num_needle = 0
+    num_fish = 0
+    num_im = len(im_anno_list)
+    time_cnt = time.time()
+    i = 0
+    for im_anno in im_anno_list:
+        i += 1
+        im, anno_needle, anno_fish = im_anno
+
+        unet_test.load_im(im)
+        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=44)
+
+        if len(np.where(anno_needle == 1)[0]) > 0:
+            needle_recall_ratio, needle_false_ratio = recall_false_ratio(needle_binary, anno_needle, threshold)
+            ave_needle_recall_ratio += needle_recall_ratio
+            ave_needle_false_ratio += needle_false_ratio
+
+            num_needle += 1
+
+        if len(np.where(anno_fish == 1)[0]) > 0:
+            fish_recall_ratio, fish_false_ratio = recall_false_ratio(fish_binary, anno_fish, threshold)
+            ave_fish_recall_ratio += fish_recall_ratio
+            ave_fish_false_ratio += fish_false_ratio
+
+            num_fish += 1
+        # cv2.imshow("binary", binary*255)
+        # cv2.waitKey(0)
+        # cv2.imshow("anno", anno*255)
+        # cv2.waitKey(0)
+
+    return ave_needle_recall_ratio / num_needle, \
+           ave_needle_false_ratio / num_needle, \
+           ave_fish_recall_ratio / num_fish, \
+           ave_fish_false_ratio / num_fish
+
 def test_UNet_select_size_thre(im_anno_list, save = False):
-    unet_test = UNetTest(n_class=2, cropped_size=240, model_path="Methods/LightUNet/6000.pth.tar")
-    unet_test.load_model()
+
     ave_needle_accs = []
     ave_fish_accs = []
     ave_needle_ius = []
@@ -503,6 +714,62 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
 
 
     print("time per frame", time_used / num_im)
+
+def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
+    threshold = np.arange(thre_steps)/thre_steps
+    b_recall_ratios = []
+    b_false_ratios = []
+    O_recall_ratios = []
+    O_false_ratios = []
+    L_recall_ratios = []
+    L_false_ratios = []
+    R_recall_ratios = []
+    R_false_ratios = []
+    U_recall_ratios = []
+    U_false_ratios = []
+    for t in threshold:
+        print("for threshold:", t)
+        r, f = binarization_recall_false_ratio(im_anno_list, t)
+        b_recall_ratios.append(r)
+        b_false_ratios.append(f)
+        print("binarization", r, f)
+
+        r, f = Otsu_recall_false_ratio(im_anno_list, t)
+        O_recall_ratios.append(r)
+        O_false_ratios.append(f)
+        print("Otsu", r, f)
+
+        r, f = LRB_recall_false_ratio(im_anno_list, t)
+        L_recall_ratios.append(r)
+        L_false_ratios.append(f)
+        print("LRB", r, f)
+
+        r, f = RG_recall_false_ratio(im_anno_list, t)
+        R_recall_ratios.append(r)
+        R_false_ratios.append(f)
+        print(r, f)
+
+        r, f = UNet_recall_false_ratio(im_anno_list, t)
+        U_recall_ratios.append(r)
+        U_false_ratios.append(f)
+        print("UNet", r, f)
+
+    fig = plt.figure()
+    plt.plot(b_recall_ratios, label = "Thresholding")
+    plt.plot(O_recall_ratios, label = "Ostu Thresholding")
+    plt.plot(L_recall_ratios, label = "linear regression")
+    plt.plot(R_recall_ratios, label = "Region growing")
+    plt.plot(U_recall_ratios, label = "U Net")
+    plt.legend(loc="best")
+    plt.show()
+    plt.plot(b_false_ratios, label="Thresholding")
+    plt.plot(O_false_ratios, label="Ostu Thresholding")
+    plt.plot(L_false_ratios, label="linear regression")
+    plt.plot(R_false_ratios, label="Region growing")
+    plt.plot(U_false_ratios, label="U Net")
+    plt.legend(loc="best")
+    plt.show()
+
 '''
 Exceptions
 '''
@@ -539,5 +806,6 @@ if __name__ == '__main__':
     #test_LRB(im_anno_list)
     #(im_anno_list)
     #test_UNet(im_anno_list)
-    test_UNet_detailed(im_anno_list, save=True)
+    #test_UNet_detailed(im_anno_list, save=True)
     #test_UNet_select_size_thre(im_anno_list)
+    test_all_recall_false_ratio(im_anno_list[:3], 2)

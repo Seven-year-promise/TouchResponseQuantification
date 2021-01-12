@@ -1,6 +1,6 @@
 import sys
 
-from tensorflow_core.python.tools import freeze_graph
+from tensorflow.python.tools import freeze_graph
 
 sys.path.append('../..')
 from Methods.UNet_tf.util import *
@@ -55,16 +55,24 @@ class UNet(object):
         summary = tf.summary.merge(summarys)
         return summary
 
+    def save_ckpt(self, directory, filename):
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        filepath = os.path.join(directory, filename + '.ckpt')
+        self.saver.save(self.sess, filepath)
+        return filepath
+
     def save(self, step):
         print('saving', end=' ')
         if not os.path.exists(self.conf.modeldir):
             os.makedirs(self.conf.modeldir)
 
         # Save check point for graph frozen later
-        ckpt_filepath = self.save(directory=self.conf.modeldir, filename=self.conf.model_name)
-        pbtxt_filename = self.conf.model_name + '.pbtxt'
+        ckpt_filepath = self.save_ckpt(directory=self.conf.modeldir, filename=self.conf.model_name)
+        pbtxt_filename = self.conf.model_name + str(step) + '.pbtxt'
         pbtxt_filepath = os.path.join(self.conf.modeldir, pbtxt_filename)
-        pb_filepath = os.path.join(self.conf.modeldir, self.conf.model_name + '.pb')
+        pb_filepath = os.path.join(self.conf.modeldir, self.conf.model_name + str(step) + '.pb')
         # This will only save the graph but the variables will not be saved.
         # You have to freeze your model first.
 
@@ -134,7 +142,10 @@ class UNet(object):
         conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
         conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
 
-        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1, is_training=self.conf.is_training, stride=1, activation=False)
+        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
+                       is_training=self.conf.is_training, stride=1,
+                       name="cnn/output",
+                       activation=False)
 
         return predict
 
@@ -220,80 +231,203 @@ class UNet(object):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.conf.rate).minimize(self.loss_op)
         return optimizer
 
+    def augmentation(self, im_size, x, y):
+        out_x = np.ones((x.shape[0], im_size, im_size, 1), x.dtype)
+        out_y = np.ones((y.shape[0], im_size, im_size, y.shape[3]), y.dtype)
+        num = x.shape[0]
+        for n in range(num):
+            #print(x.shape)
+            x_copy = np.array(x[n, :, :, :], np.uint8)
+            y_copy0 = np.array(y[n, :, :, 0], np.uint8)
+            y_copy1 = np.array(y[n, :, :, 1], np.uint8)
+            x_img = Image.fromarray(x_copy)
+            y_img0 = Image.fromarray(y_copy0)
+            y_img1 = Image.fromarray(y_copy1)
+            rotate = np.random.randint(0, 360)
+            x_img_rotate = x_img.rotate(rotate, expand=False)
+            y_img0_rotate = y_img0.rotate(rotate, expand=False)
+            y_img1_rotate = y_img1.rotate(rotate, expand=False)
+
+            x_cv_color = np.asarray(x_img_rotate)
+            x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
+
+            y_cv0_gray = np.asarray(y_img0_rotate)
+            y_cv1_gray = np.asarray(y_img1_rotate)
+            #cv2.imshow("x_cv_gray", x_cv_gray)
+            #cv2.waitKey(0)
+            _, (well_x, well_y, _), im_well = well_detection(x_cv_color, x_cv_gray)
+            im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+            x_min = int(well_x - im_size / 2)
+            x_max = int(well_x + im_size / 2)
+            y_min = int(well_y - im_size / 2)
+            y_max = int(well_y + im_size / 2)
+            x_block = im_well[y_min:y_max, x_min:x_max]
+            y_block0 = y_cv0_gray[y_min:y_max, x_min:x_max]
+            y_block1 = y_cv1_gray[y_min:y_max, x_min:x_max]
+            #cv2.imshow("x_block", x_block)
+            #cv2.imshow("y_block0", y_block0*255)
+            #cv2.imshow("y_block1", y_block1*255)
+            #cv2.waitKey(0)
+
+            out_x[n, :, :, 0] = np.array(x_block, dtype=x.dtype)/255 - 0.5
+            out_y[n, :, :, 0] = np.array(y_block0, dtype=y.dtype)
+            out_y[n, :, :, 1] = np.array(y_block1, dtype=y.dtype)
+        """
+        x = np.array(x, dtype = np.uint8)
+        x
+        _, (well_x, well_y, _), im_well = well_detection(x, x)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+        x_min = int(well_x - 240 / 2)
+        x_max = int(well_x + 240 / 2)
+        y_min = int(well_y - 240 / 2)
+        y_max = int(well_y + 240 / 2)
+        im_block = im_well[y_min:y_max, x_min:x_max]
+        img = np.array(im_block, dtype=np.float32)
+        """
+        return out_x, out_y
+
     def train(self):
         if self.conf.reload_step > 0:
             if not self.reload(self.conf.reload_step):
                 return
             print('reload', self.conf.reload_step)
 
-        images, labels = read_record(self.conf.datadir, self.conf.im_size, self.conf.batch_size)
-        with tf.device("/device:XLA_GPU:0"):
-            tf.train.start_queue_runners(sess=self.sess)
-            print('Begin Train')
+        images, labels = read_record(self.conf.datadir, self.conf.ori_size, self.conf.batch_size)
+        #with tf.device("/device:XLA_GPU:0"):
+        tf.train.start_queue_runners(sess=self.sess)
+        print('Begin Train')
 
-            for train_step in range(1, self.conf.max_step + 1):
-                start_time = time.time()
+        for train_step in range(1, self.conf.max_step + 1):
+            start_time = time.time()
 
-                x, y = self.sess.run([images, labels])
-                # summary
-                #print(x)
-                #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
-                #cv2.imshow("show", show)
-                #cv2.waitKey(0)
-                if train_step == 1 or train_step % self.conf.summary_interval == 0:
-                    feed_dict = {self.images: x,
-                                 self.annotations: y}
-                    loss, acc, _, summary = self.sess.run(
-                        [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
-                        feed_dict=feed_dict)
-                    print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
-                    self.save_summary(summary, train_step + self.conf.reload_step)
-                    end_time = time.time()
-                    time_diff = end_time - start_time
-                    print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
-                # print 损失和准确性
-                else:
-                    feed_dict = {self.images: x,
-                                 self.annotations: y}
-                    loss, acc, _ = self.sess.run(
-                        [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
-                    #print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
-                # 保存模型
-                if train_step % self.conf.save_interval == 0:
-                    self.save(train_step + self.conf.reload_step)
+            x, y = self.sess.run([images, labels])
+            x, y = self.augmentation(240, x, y)
+            # summary
+            #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
+            #cv2.imshow("show", show)
+            #cv2.waitKey(0)
+            if train_step == 1 or train_step % self.conf.summary_interval == 0:
+                feed_dict = {self.images: x,
+                             self.annotations: y}
+                loss, acc, _, summary = self.sess.run(
+                    [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
+                    feed_dict=feed_dict)
+                print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+                self.save_summary(summary, train_step + self.conf.reload_step)
+                end_time = time.time()
+                time_diff = end_time - start_time
+                print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
+            # print 损失和准确性
+            else:
+                feed_dict = {self.images: x,
+                             self.annotations: y}
+                loss, acc, _ = self.sess.run(
+                    [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
+                #print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+            # 保存模型
+            if train_step % self.conf.save_interval == 0:
+                self.save(train_step + self.conf.reload_step)
 
+    def segmen(self, img):
+        label = self.sess.run([self.output],
+                              feed_dict={
+                                  self.input: img
+                              })
+        label = np.squeeze(label)
+        label = tf.convert_to_tensor(label)
+        label = tf.nn.sigmoid(label, name='sigmoid')
+        with tf.Session() as sess:
+            label = sess.run(label)
+        label = np.array(label)
+        label = label.reshape((self.conf.im_size, self.conf.im_size, 2))
+        return label
 
     def predicts(self):
-        if self.conf.reload_step > 0:
-            if not self.reload(self.conf.reload_step):
-                return
-            print('reload', self.conf.reload_step)
-
+        model_path = "models/UNet18000.pb"
+        self.load_graph(model_path)
         standard = self.images/255 - 0.5 #tf.image.per_image_standardization(self.images)
 
-        for n in range(70, 100):
-            img = os.path.join('data/render_test/Images/', str(n) + '.jpg')
+        for n in range(70, 200):
+            img = os.path.join('data/test/Images/', str(n) + '.jpg')
             img = cv2.imread(img)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            _, (well_x, well_y, _), im_well = well_detection(img, gray)
+            im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+            x_min = int(well_x - 240 / 2)
+            x_max = int(well_x + 240 / 2)
+            y_min = int(well_y - 240 / 2)
+            y_max = int(well_y + 240 / 2)
+            im_block = im_well[y_min:y_max, x_min:x_max]
+            img = np.array(im_block, dtype=np.float32)
+            print("SHAPE-------------", img.shape)
             img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 1))
 
-            img = self.sess.run([standard],
-                                feed_dict={
-                                    self.images: img
-                                })
+            img = img/255 - 0.5
             img = np.reshape(img, (1, self.conf.im_size, self.conf.im_size, 1))
 
-            label = self.sess.run([self.predict],
+            label = self.sess.run([self.output],
                                   feed_dict={
-                                      self.images: img
+                                      self.input: img
                                   })
+            label = np.squeeze(label)
+            print(label, label.shape)
+            label = tf.convert_to_tensor(label)
+            label = tf.nn.sigmoid(label, name='sigmoid')
+            with tf.Session() as sess:
+                label = sess.run(label)
             label = np.array(label)
             label = label.reshape((self.conf.im_size, self.conf.im_size, 2))
             #label = np.argmax(label, axis=2)
-            label = label[:, :, 1] * 255
-            cv2.imshow("label", label)
+            label[label > 0.95] = 255
+            label[label <= 0.95] = 0
+            #label = label[:, :, 1] * 255
+            cv2.imshow("label", label[:, :, 1])
             cv2.waitKey(0)
             print(n)
             #im = Image.fromarray(label.astype('uint8'))
             #im.save(os.path.join('data/render_test/predict/', str(n) + '.png'))
+
+    def load_graph(self, model_path):
+        '''
+        Lode trained model.
+        '''
+        print('Loading model...')
+        self.graph = tf.Graph()
+
+        with tf.gfile.GFile(model_path, 'rb') as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString(f.read())
+
+        print('Check out the input placeholders:')
+        nodes = [n.name + ' => ' + n.op for n in graph_def.node if n.op in ('Placeholder')]
+        for node in nodes:
+            print(node)
+
+        with self.graph.as_default():
+            # Define input tensor
+            self.input = tf.placeholder(np.float32, shape=[None, 240, 240, 1], name='x')
+            tf.import_graph_def(graph_def, {'x': self.input})
+
+        self.graph.finalize()
+
+        print('Model loading complete!')
+
+        # Get layer names
+        layers = [op.name for op in self.graph.get_operations()]
+        """
+        for layer in layers:
+            print(layer)
+
+        
+        # Check out the weights of the nodes
+        weight_nodes = [n for n in graph_def.node if n.op == 'Const']
+        for n in weight_nodes:
+            print("Name of the node - %s" % n.name)
+            # print("Value - " )
+            # print(tensor_util.MakeNdarray(n.attr['value'].tensor))
+        """
+
+        # In this version, tf.InteractiveSession and tf.Session could be used interchangeably.
+        # self.sess = tf.InteractiveSession(graph = self.graph)
+        self.output = self.graph.get_tensor_by_name("import/cnn/output:0")
+        self.sess = tf.Session(graph=self.graph)
