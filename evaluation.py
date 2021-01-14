@@ -19,7 +19,7 @@ ostu = Binarization(method = "Otsu")
 lrb = Binarization(method = "LRB")
 rg = Binarization(method = "RG")
 unet_test = UNetTestTF()
-unet_test.model.load_graph(model_path="Methods/UNet_tf/models/UNet18000.pb")
+unet_test.model.load_graph(model_path="Methods/UNet_tf/models_ori/UNet18000.pb")
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -755,19 +755,93 @@ def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
         print("UNet", r, f)
 
     fig = plt.figure()
-    plt.plot(b_recall_ratios, label = "Thresholding")
-    plt.plot(O_recall_ratios, label = "Ostu Thresholding")
-    plt.plot(L_recall_ratios, label = "linear regression")
-    plt.plot(R_recall_ratios, label = "Region growing")
-    plt.plot(U_recall_ratios, label = "U Net")
+    plt.plot(b_recall_ratios, marker = ".", label = "Thresholding")
+    plt.plot(O_recall_ratios, marker = "s", label = "Ostu Thresholding")
+    plt.plot(L_recall_ratios, marker = "*", label = "linear regression")
+    plt.plot(R_recall_ratios, marker = "h", label = "Region growing")
+    plt.plot(U_recall_ratios, marker = "x", label = "U Net")
     plt.legend(loc="best")
+    plt.xlabel("Threshold of ROI")
+    plt.ylabel("Recall Ratio")
+    plt.title("Comparison of recall ratio when Threshold of ROI changes")
     plt.show()
-    plt.plot(b_false_ratios, label="Thresholding")
-    plt.plot(O_false_ratios, label="Ostu Thresholding")
-    plt.plot(L_false_ratios, label="linear regression")
-    plt.plot(R_false_ratios, label="Region growing")
-    plt.plot(U_false_ratios, label="U Net")
+    plt.plot(b_false_ratios, marker = ".", label="Thresholding")
+    plt.plot(O_false_ratios, marker = "s", label="Ostu Thresholding")
+    plt.plot(L_false_ratios, marker = "*", label="linear regression")
+    plt.plot(R_false_ratios, marker = "h", label="Region growing")
+    plt.plot(U_false_ratios, marker = "x", label="U Net")
     plt.legend(loc="best")
+    plt.xlabel("Threshold of ROI")
+    plt.ylabel("Correct Detection Ratio")
+    plt.title("Comparison of correct detection ratio when Threshold of ROI changes")
+    plt.show()
+
+def UNet_select_epoch(im_anno_list, modeldir, model_type = "Models without augmentation"):
+    model_files = [f for f in os.listdir(modeldir) if f.endswith('.pb')]
+
+    def model_num(x):
+        return (x[4:-3])
+
+    sorted_files = sorted(model_files, key=model_num)
+
+    file_num = len(sorted_files)
+    epoches = np.range(file_num)*500
+
+    ave_needle_accs = []
+    ave_fish_accs = []
+    ave_needle_ius = []
+    ave_fish_ius = []
+    for m_f in sorted_files:
+        unet_test = UNetTestTF()
+        unet_test.model.load_graph(model_path=modeldir + m_f)
+        ave_needle_acc = 0
+        ave_fish_acc = 0
+        ave_needle_iu = 0
+        ave_fish_iu = 0
+        num_needle = 0
+        num_fish = 0
+        num_im = len(im_anno_list)
+        i = 0
+        for im_anno in im_anno_list:
+            i += 1
+            im, anno_needle, anno_fish = im_anno
+
+            unet_test.load_im(im)
+            needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
+                                                                                             size_fish=44)
+
+            if len(np.where(anno_needle == 1)[0]) > 0:
+                acc_needle = mean_accuracy(needle_binary, anno_needle)
+                ave_needle_acc += acc_needle
+                iu_needle = mean_IU(needle_binary, anno_needle)
+                ave_needle_iu += iu_needle
+                num_needle += 1
+
+            if len(np.where(anno_fish == 1)[0]) > 0:
+                acc_fish = mean_accuracy(fish_binary, anno_fish)
+                ave_fish_acc += acc_fish
+                iu_fish = mean_IU(fish_binary, anno_fish)
+                ave_fish_iu += iu_fish
+                num_fish += 1
+            # cv2.imshow("binary", binary*255)
+            # cv2.waitKey(0)
+            # cv2.imshow("anno", anno*255)
+            # cv2.waitKey(0)
+        ave_needle_accs.append(ave_needle_acc / num_needle)
+        ave_needle_ius.append(ave_needle_iu / num_needle)
+
+        ave_fish_accs.append(ave_fish_acc / num_fish)
+        ave_fish_ius.append(ave_fish_iu / num_fish)
+
+    plt.plot(epoches, ave_needle_accs, marker=".")
+    plt.plot(epoches, ave_needle_ius, marker="s")
+    plt.plot(epoches, ave_fish_accs, marker="*")
+    plt.plot(epoches, ave_fish_ius, marker="h")
+
+    plt.legend(labels=["PC Needle", "JI Needle", "PC Larva", "JI Larva"], loc="best")
+    plt.xlabel("Training Epoch")
+    plt.ylabel("Performance Indexes")
+    plt.title(model_type)
     plt.show()
 
 '''
@@ -808,4 +882,5 @@ if __name__ == '__main__':
     #test_UNet(im_anno_list)
     #test_UNet_detailed(im_anno_list, save=True)
     #test_UNet_select_size_thre(im_anno_list)
-    test_all_recall_false_ratio(im_anno_list[:3], 2)
+    #test_all_recall_false_ratio(im_anno_list, 20)
+    UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_ori/", model_type="Models without augmentation")

@@ -94,6 +94,25 @@ def conv(input, shape, stddev, is_training, stride, name=None, activation=True):
         layer = tf.nn.relu(layer)
     return layer
 
+def light_conv(input, shape, stddev, is_training, stride, name=None, activation=True):
+    """
+    :param stride: stride
+    :param is_training: 是否训练
+    :param input: 输入
+    :param shape: 过滤器尺寸
+    :param stddev: 初始化
+    :param activation: activation function
+    :return:
+    """
+
+    weights = new_weights(shape, stddev)
+    biases = new_biases(shape[-1])
+    layer = tf.nn.conv2d(input=input, filter=weights, strides=[1, stride, stride, 1], padding='SAME')
+    layer = tf.math.add(layer, biases, name=name)
+    #layer = batch_normalization(layer, training=is_training)
+    if activation:
+        layer = tf.nn.relu(layer)
+    return layer
 
 def deconv(input, shape, stride, stddev):
     in_shape = tf.shape(input)

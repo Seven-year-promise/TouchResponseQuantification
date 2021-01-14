@@ -4,13 +4,16 @@ from tensorflow.python.tools import freeze_graph
 
 sys.path.append('../..')
 from Methods.UNet_tf.util import *
+from Methods.UNet_tf.eval import *
 import time
 from datetime import timedelta
 from Methods.UNet_tf.data import *
 import numpy as np
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from PIL import Image
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
 
@@ -48,6 +51,9 @@ class UNet(object):
         self.saver = tf.train.Saver(var_list=trainable_vars + bn_moving_vars, max_to_keep=0)
         self.writer = tf.summary.FileWriter(self.conf.logdir, self.sess.graph)
         self.train_summary = self.config_summary('train')
+
+        self.eval_im_anno_list = []
+        self.eval_FLAG = False
 
     def config_summary(self, name):
         summarys = [tf.summary.scalar(name + '/loss', self.loss_op),
@@ -90,7 +96,7 @@ class UNet(object):
 
     def reload(self, step):
         checkpoint_path = os.path.join(
-            self.conf.modeldir, self.conf.model_name)
+            self.conf.modeldir, self.conf.model_name + ".ckpt")
         model_path = checkpoint_path + '-' + str(step)
         if not os.path.exists(model_path + '.meta'):
             print('------- no such checkpoint', model_path)
@@ -142,12 +148,59 @@ class UNet(object):
         conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
         conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
 
-        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
+        self.predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
                        is_training=self.conf.is_training, stride=1,
                        name="cnn/output",
                        activation=False)
 
-        return predict
+        return self.predict
+
+    def LightCNN(self):
+        conv1 = conv(self.images, shape=[3, 3, 1, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv1 = conv(conv1, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        pool1 = max_pool(conv1, size=2)
+
+        conv2 = conv(pool1, shape=[3, 3, 64, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv2 = conv(conv2, shape=[3, 3, 128, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        pool2 = max_pool(conv2, size=2)
+
+        conv3 = conv(pool2, shape=[3, 3, 128, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv3 = conv(conv3, shape=[3, 3, 256, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        pool3 = max_pool(conv3, size=2)
+
+        conv4 = conv(pool3, shape=[3, 3, 256, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv4 = conv(conv4, shape=[3, 3, 512, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        pool4 = max_pool(conv4, size=2)
+
+        conv5 = conv(pool4, shape=[3, 3, 512, 1024], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv5 = conv(conv5, shape=[3, 3, 1024, 1024], stddev=0.1, is_training=self.conf.is_training, stride=1)
+
+        up6 = deconv(conv5, shape=[2, 2, 512, 1024], stride=2, stddev=0.1)
+        merge6 = concat(up6, conv4)
+        conv6 = conv(merge6, shape=[3, 3, 1024, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv6 = conv(conv6, shape=[3, 3, 512, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
+
+        up7 = deconv(conv6, shape=[2, 2, 256, 512], stride=2, stddev=0.1)
+        merge7 = concat(up7, conv3)
+        conv7 = conv(merge7, shape=[3, 3, 512, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv7 = conv(conv7, shape=[3, 3, 256, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
+
+        up8 = deconv(conv7, shape=[2, 2, 128, 256], stride=2, stddev=0.1)
+        merge8 = concat(up8, conv2)
+        conv8 = conv(merge8, shape=[3, 3, 256, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv8 = conv(conv8, shape=[3, 3, 128, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
+
+        up9 = deconv(conv8, shape=[2, 2, 64, 128], stride=2, stddev=0.1)
+        merge9 = concat(up9, conv1)
+        conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
+
+        self.light_predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
+                       is_training=self.conf.is_training, stride=1,
+                       name="cnn/output",
+                       activation=False)
+
+        return self.light_predict
 
     def loss(self, scope='loss'):
         """
@@ -231,7 +284,36 @@ class UNet(object):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.conf.rate).minimize(self.loss_op)
         return optimizer
 
-    def augmentation(self, im_size, x, y):
+    def random_rotate(self, x, y0, y1):
+        x_img = Image.fromarray(x)
+        y_img0 = Image.fromarray(y0)
+        y_img1 = Image.fromarray(y1)
+        rotate = np.random.randint(0, 360)
+        x_img_rotate = x_img.rotate(rotate, expand=False)
+        y_img0_rotate = y_img0.rotate(rotate, expand=False)
+        y_img1_rotate = y_img1.rotate(rotate, expand=False)
+
+        x_cv_color = np.asarray(x_img_rotate)
+        x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
+
+        y_cv0_gray = np.asarray(y_img0_rotate)
+        y_cv1_gray = np.asarray(y_img1_rotate)
+
+        return x_cv_color, x_cv_gray, y_cv0_gray, y_cv1_gray
+
+    def contrast_brightness(self, x):
+        alpha = np.random.random(1)[0]
+        beta = np.random.randint(0, 50)
+
+        return alpha * x + beta
+
+    def gaussian_noise(self, x):
+        gaussian_noise = x.copy()
+        cv2.randn(gaussian_noise, 0, 100)
+
+        return x + gaussian_noise
+
+    def augmentation(self, im_size, x, y, random_rotate = True, contrast = True, noise = True):
         out_x = np.ones((x.shape[0], im_size, im_size, 1), x.dtype)
         out_y = np.ones((y.shape[0], im_size, im_size, y.shape[3]), y.dtype)
         num = x.shape[0]
@@ -240,19 +322,15 @@ class UNet(object):
             x_copy = np.array(x[n, :, :, :], np.uint8)
             y_copy0 = np.array(y[n, :, :, 0], np.uint8)
             y_copy1 = np.array(y[n, :, :, 1], np.uint8)
-            x_img = Image.fromarray(x_copy)
-            y_img0 = Image.fromarray(y_copy0)
-            y_img1 = Image.fromarray(y_copy1)
-            rotate = np.random.randint(0, 360)
-            x_img_rotate = x_img.rotate(rotate, expand=False)
-            y_img0_rotate = y_img0.rotate(rotate, expand=False)
-            y_img1_rotate = y_img1.rotate(rotate, expand=False)
 
-            x_cv_color = np.asarray(x_img_rotate)
-            x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
+            if random_rotate:
+                x_cv_color, x_cv_gray, y_cv0_gray, y_cv1_gray = self.random_rotate(x_copy, y_copy0, y_copy1)
+            else:
+                x_cv_color = x_copy
+                x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
+                y_cv0_gray = y_copy0
+                y_cv1_gray = y_copy1
 
-            y_cv0_gray = np.asarray(y_img0_rotate)
-            y_cv1_gray = np.asarray(y_img1_rotate)
             #cv2.imshow("x_cv_gray", x_cv_gray)
             #cv2.waitKey(0)
             _, (well_x, well_y, _), im_well = well_detection(x_cv_color, x_cv_gray)
@@ -262,6 +340,13 @@ class UNet(object):
             y_min = int(well_y - im_size / 2)
             y_max = int(well_y + im_size / 2)
             x_block = im_well[y_min:y_max, x_min:x_max]
+
+            if contrast:
+                x_block = self.contrast_brightness(x_block)
+
+            if noise:
+                x_block = self.gaussian_noise(x_block)
+
             y_block0 = y_cv0_gray[y_min:y_max, x_min:x_max]
             y_block1 = y_cv1_gray[y_min:y_max, x_min:x_max]
             #cv2.imshow("x_block", x_block)
@@ -297,11 +382,17 @@ class UNet(object):
         tf.train.start_queue_runners(sess=self.sess)
         print('Begin Train')
 
-        for train_step in range(1, self.conf.max_step + 1):
+        needle_accs = []
+        needle_ius = []
+        fish_accs = []
+        fish_ius = []
+        steps = []
+
+        for train_step in range(self.conf.reload_step, self.conf.max_step + 1):
             start_time = time.time()
 
             x, y = self.sess.run([images, labels])
-            x, y = self.augmentation(240, x, y)
+            x, y = self.augmentation(240, x, y, random_rotate = True, contrast = True, noise = True)
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)
@@ -313,6 +404,8 @@ class UNet(object):
                     [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
                     feed_dict=feed_dict)
                 print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+
+
                 self.save_summary(summary, train_step + self.conf.reload_step)
                 end_time = time.time()
                 time_diff = end_time - start_time
@@ -326,7 +419,106 @@ class UNet(object):
                 #print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
             # 保存模型
             if train_step % self.conf.save_interval == 0:
-                self.save(train_step + self.conf.reload_step)
+                self.save(train_step)
+        """
+                steps.append(train_step)
+                needle_acc, needle_iu, fish_acc, fish_iu = self. eval(2, train_step)
+
+                needle_accs.append(needle_acc)
+                needle_ius.append(needle_iu)
+                fish_accs.append(fish_acc)
+                fish_ius.append(fish_iu)
+
+                plt.plot(steps, needle_accs, marker=".")
+                plt.plot(steps, needle_ius, marker="s")
+                plt.plot(steps, fish_accs, marker="*")
+                plt.plot(steps, fish_ius, marker="h")
+
+                plt.legend(labels=["PC Needle", "JI Needle", "PC Larva", "JI Larva"], loc="best")
+                plt.xlabel("Training Steps")
+                plt.ylabel("Performance Indexes")
+                plt.title("The performance od U-Net on testing dataset when training")
+                plt.pause(0.05)
+        plt.show()
+        """
+
+    def eval(self, batch_size, train_step):
+        if not self.eval_FLAG:
+            test_im_path = "data/test/Images/"
+            test_anno_path = "data/test/annotation/"
+            ims_name = os.listdir(test_im_path)
+            annos_name = os.listdir(test_anno_path)
+            im_anno_list = []
+            for im_name in ims_name:
+                name = im_name[:-4]
+                im = cv2.imread(test_im_path + im_name)
+                anno = cv2.imread(test_anno_path + name + "_label.tif")
+                # anno = cv2.erode(anno, (3, 3), iterations=2)
+                anno = anno[:, :, 1]
+                anno_needle = np.zeros(anno.shape, dtype=np.uint8)
+                anno_needle[np.where(anno == 1)] = 1
+                anno_fish = np.zeros(anno.shape, dtype=np.uint8)
+                anno_fish[np.where(anno == 2)] = 1
+
+                im_anno_list.append([im, anno_needle, anno_fish])
+            self.eval_im_anno_list = im_anno_list
+
+        eval_num = len(self.eval_im_anno_list)
+
+        split_num = int(eval_num / batch_size)
+
+        #self.load_graph(
+        #   os.path.join(self.conf.modeldir, self.conf.model_name + str(train_step + self.conf.reload_step) + '.pb'))
+
+        if eval_num != (batch_size * split_num):
+            split_num = split_num-1
+
+        ave_needle_acc = 0
+        ave_fish_acc = 0
+        ave_needle_iu = 0
+        ave_fish_iu = 0
+
+        for n in range(1):
+            im_patch, anno_patch = load_im(self.eval_im_anno_list[(n * batch_size):((n+1) * batch_size)])
+
+            label = self.sess.run([self.predict],
+                                  feed_dict={
+                                      self.images: im_patch
+                                  })
+            label = np.squeeze(label)
+            label = tf.convert_to_tensor(label)
+            label = tf.nn.sigmoid(label, name='sigmoid')
+            with tf.Session() as sess:
+                label = sess.run(label)
+            label = np.array(label)
+            segmen_patch = label.reshape((-1, self.conf.im_size, self.conf.im_size, 2))
+
+            needle_acc, fish_acc, needle_iu, fish_iu = eval(segmen_patch, anno_patch)
+            ave_needle_acc += needle_acc
+            ave_fish_acc += fish_acc
+            ave_needle_iu += needle_iu
+            ave_fish_iu += fish_iu
+
+        return ave_needle_acc / split_num, \
+           ave_fish_acc / split_num, \
+           ave_needle_iu / split_num, \
+           ave_fish_iu / split_num
+
+
+    def segmen_patch(self, img_patch):
+        label = self.sess.run([self.output],
+                              feed_dict={
+                                  self.input: img_patch
+                              })
+        label = np.squeeze(label)
+        label = tf.convert_to_tensor(label)
+        label = tf.nn.sigmoid(label, name='sigmoid')
+        with tf.Session() as sess:
+            label = sess.run(label)
+        label = np.array(label)
+        label = label.reshape((-1, self.conf.im_size, self.conf.im_size, 2))
+        return label
+
 
     def segmen(self, img):
         label = self.sess.run([self.output],
@@ -342,7 +534,7 @@ class UNet(object):
         label = label.reshape((self.conf.im_size, self.conf.im_size, 2))
         return label
 
-    def predicts(self):
+    def predicts(self, threshold = 0.9):
         model_path = "models/UNet18000.pb"
         self.load_graph(model_path)
         standard = self.images/255 - 0.5 #tf.image.per_image_standardization(self.images)
@@ -378,8 +570,8 @@ class UNet(object):
             label = np.array(label)
             label = label.reshape((self.conf.im_size, self.conf.im_size, 2))
             #label = np.argmax(label, axis=2)
-            label[label > 0.95] = 255
-            label[label <= 0.95] = 0
+            label[label > threshold] = 255
+            label[label <= threshold] = 0
             #label = label[:, :, 1] * 255
             cv2.imshow("label", label[:, :, 1])
             cv2.waitKey(0)
