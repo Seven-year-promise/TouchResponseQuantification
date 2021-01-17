@@ -4,7 +4,6 @@ from tensorflow.python.tools import freeze_graph
 
 sys.path.append('../..')
 from Methods.UNet_tf.util import *
-from Methods.UNet_tf.eval import *
 import time
 from datetime import timedelta
 from Methods.UNet_tf.data import *
@@ -583,17 +582,17 @@ class UNet(object):
         '''
         Lode trained model.
         '''
-        print('Loading model...')
+        #print('Loading model...')
         self.graph = tf.Graph()
 
         with tf.gfile.GFile(model_path, 'rb') as f:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(f.read())
 
-        print('Check out the input placeholders:')
+        #print('Check out the input placeholders:')
         nodes = [n.name + ' => ' + n.op for n in graph_def.node if n.op in ('Placeholder')]
-        for node in nodes:
-            print(node)
+        #for node in nodes:
+        #print(node)
 
         with self.graph.as_default():
             # Define input tensor
@@ -602,7 +601,7 @@ class UNet(object):
 
         self.graph.finalize()
 
-        print('Model loading complete!')
+        #print('Model loading complete!')
 
         # Get layer names
         layers = [op.name for op in self.graph.get_operations()]
