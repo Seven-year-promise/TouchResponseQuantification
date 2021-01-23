@@ -958,7 +958,6 @@ if __name__ == '__main__':
     #test_UNet_detailed(im_anno_list, save=True)
     #test_UNet_select_size_thre(im_anno_list)
     #test_all_recall_false_ratio(im_anno_list, 20)
-    #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_rotate_contrast_noise/",
-    # model_type="Models with augmentation of random rotation, contrast, brightness abd Gaussian noise")
-    unet_test.model.load_graph(model_path="Methods/UNet_tf/models_rotate_contrast/UNet16000.pb")
+    #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")
+    unet_test.model.load_graph(model_path="Methods/UNet_tf/models_noise/UNet14000.pb")
     test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)

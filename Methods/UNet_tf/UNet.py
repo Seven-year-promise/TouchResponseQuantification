@@ -391,7 +391,7 @@ class UNet(object):
             start_time = time.time()
 
             x, y = self.sess.run([images, labels])
-            x, y = self.augmentation(240, x, y, random_rotate = True, contrast = True, noise = True)
+            x, y = self.augmentation(240, x, y, random_rotate = False, contrast = False, noise = False)
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)

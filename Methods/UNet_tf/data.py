@@ -89,7 +89,7 @@ def read_record(filename, im_size, batch_size):
 
 
 if __name__ == '__main__':
-    if not os.path.exists('./data/train/test.tfrecords'):
-        create_record('data/test/', 480, './data/test/test.tfrecords')
+    if not os.path.exists('./data/train/train.tfrecords'):
+        create_record('data/train/', 480, './data/train/train.tfrecords')
     else:
         print('TFRecords already exists!')
