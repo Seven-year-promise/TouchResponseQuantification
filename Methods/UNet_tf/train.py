@@ -8,7 +8,7 @@ def configure():
     flags = tf.app.flags
     flags.DEFINE_integer('max_step', 200000, 'How many steps to train')
     flags.DEFINE_float('rate', 1e-4, 'learning rate for training')
-    flags.DEFINE_integer('reload_step', 4500, 'Reload step to continue training')
+    flags.DEFINE_integer('reload_step', 9000, 'Reload step to continue training')
     flags.DEFINE_integer('save_interval', 500, 'interval to save model')
     flags.DEFINE_integer('summary_interval', 50, 'interval to save summary')
     flags.DEFINE_integer('n_classes', 2, 'output class number')
