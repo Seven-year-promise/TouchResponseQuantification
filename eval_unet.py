@@ -271,7 +271,7 @@ def recall_false_ratio(eval_segm, gt_segm, threshold, larva_num = 5):
 
 def dice_loss(pred, target, smooth=1.):
     intersection = np.logical_and(pred, target)
-    return 2 * intersection.sum() / (pred.sum() + target.sum())
+    return 1- (2 * intersection.sum() + smooth)/ (pred.sum() + target.sum() + smooth)
 
 
 def UNet_select_epoch(im_anno_list, modeldir, model_type = "Models without augmentation"):
@@ -355,4 +355,4 @@ if __name__ == '__main__':
 
             im_anno_list.append([im, anno_needle, anno_fish])
 
-    UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_rotate_contrast_finished/", model_type="Models with augmentation of random rotation, contrast and brightness")
+    UNet_select_epoch(im_anno_list[::100], modeldir = "Methods/UNet_tf/models_rotate_contrast_finished/", model_type="Models with augmentation of random rotation, contrast and brightness")
