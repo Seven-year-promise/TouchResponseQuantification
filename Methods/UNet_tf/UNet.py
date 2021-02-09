@@ -85,12 +85,6 @@ class UNet(object):
 
         tf.train.write_graph(graph_or_graph_def=self.sess.graph_def, logdir=self.conf.modeldir, name=pbtxt_filename, as_text=True)
 
-        # Freeze graph
-        # Method 1
-        #freeze_graph.freeze_graph(input_graph=pbtxt_filepath, input_saver='', input_binary=False,
-        #                          input_checkpoint=ckpt_filepath,
-        #                          restore_op_name='save/restore_all', filename_tensor_name='save/Const:0',
-        #                          output_graph=pb_filepath, clear_devices=True, initializer_nodes='')
 
     def reload(self, step):
         checkpoint_path = os.path.join(

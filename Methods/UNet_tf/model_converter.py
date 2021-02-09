@@ -4,9 +4,9 @@ import tensorflow as tf
 from tensorflow.python.framework import graph_util
 
 dir = os.path.dirname(os.path.realpath(__file__))
+from tensorflow.python.tools import freeze_graph
 
-
-def freeze_graph(model_folder, output_nodes='y_hat',
+def freeze_(model_folder, output_nodes='y_hat',
                  output_filename='frozen-graph.pb',
                  rename_outputs=None):
     # Load checkpoint
@@ -63,9 +63,8 @@ def freeze_graph(model_folder, output_nodes='y_hat',
         print("%d ops in the final graph." % len(output_graph_def.node))
 
 def model_freeze(pbtxt_filepath, ckpt_filepath, pb_filepath):
-
     freeze_graph.freeze_graph(input_graph=pbtxt_filepath, input_saver='', input_binary=False,
-                              input_checkpoint=ckpt_filepath,
+                              input_checkpoint=ckpt_filepath, output_node_names='cnn/output',
                               restore_op_name='save/restore_all', filename_tensor_name='save/Const:0',
                               output_graph=pb_filepath, clear_devices=True, initializer_nodes='')
 
@@ -74,15 +73,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Prune and freeze weights from checkpoints into production models')
     parser.add_argument("--pbtxt_filepath",
-                        default='ckpt',
-                        type=str, help="Path to checkpoint files")
+                        default='./LightCNN/models_rotate_contrast/UNet60000.pbtxt',
+                        type=str, help="Path to pbtxt file")
     parser.add_argument("--ckpt_filepath",
-                        default='y_hat',
-                        type=str, help="Names of output node, comma seperated")
+                        default='./LightCNN/models_rotate_contrast/UNet.ckpt',
+                        type=str, help="path of checkpoint file")
     parser.add_argument("--output_graph",
-                        default='frozen-graph.pb',
+                        default='./LightCNN/models_rotate_contrast/UNet60000.pb',
                         type=str, help="Output graph filename")
     args = parser.parse_args()
 
-    model_freeze(args.checkpoint_path, pb_filepath = args.output_graph)
-    freeze_graph(args.checkpoint_path, args.output_nodes, args.output_graph, args.rename_outputs)
+    model_freeze(pbtxt_filepath = args.pbtxt_filepath, ckpt_filepath = args.ckpt_filepath, pb_filepath = args.output_graph)
+    #freeze_graph(args.checkpoint_path, args.output_nodes, args.output_graph, args.rename_outputs)
