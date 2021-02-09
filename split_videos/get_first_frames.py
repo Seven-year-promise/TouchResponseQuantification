@@ -8,9 +8,9 @@ from skimage.feature import hog
 from skimage.morphology import skeletonize
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--video_path', type=str, default = './first_frames/1204/',
+parser.add_argument('--video_path', type=str, default = './first_frames/20210127/5/',
                    help='sum the integers (default: find the max)')
-parser.add_argument('--save_path', type=str, default = './first_frames/frames/',
+parser.add_argument('--save_path', type=str, default = './first_frames/frames/5/',
                    help='sum the integers (default: find the max)')
 args = parser.parse_args()
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     video_files = os.listdir(base_video_path)
     im_save_path = args.save_path
 
-    video_cnt = 84
+    video_cnt = 0
     for vfile in video_files:
         if vfile[-3:] != 'avi':
             continue

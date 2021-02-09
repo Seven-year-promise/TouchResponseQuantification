@@ -684,3 +684,5 @@ class UNet(object):
         self.input = self.graph.get_tensor_by_name("x:0")
 
         self.output = self.graph.get_tensor_by_name("cnn/output:0")
+
+    
