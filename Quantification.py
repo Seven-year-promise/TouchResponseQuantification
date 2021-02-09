@@ -71,7 +71,7 @@ def larva_tracking(video, model_path):
         out.write(tracked_im)
     out.release()
 
-class BehaviorQuantify
+class BehaviorQuantify:
     def __init__(self, im_shape, model_path):
         self.unet_test = UNetTestTF()
         self.unet_test.model.load_graph_frozen(model_path=model_path)
