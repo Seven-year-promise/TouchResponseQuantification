@@ -13,8 +13,8 @@ def optical_flow(old_gray, new_gray, p0, lk_params):
     #cv2.imshow('frame', img)
     return good_new
 
-class NeedleTracker(im):
-    def __init__(self, init_point):
+class NeedleTracker:
+    def __init__(self):
         feature_params = dict(maxCorners=20,
                               qualityLevel=0.8,
                               minDistance=7,
@@ -23,6 +23,9 @@ class NeedleTracker(im):
         self.lk_params = dict(winSize=(15, 15),
                          maxLevel=2,
                          criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        self.p0 = []
+
+    def init_p0(self, init_point):
         self.p0 = np.array([[init_point[1], init_point[0]]])
 
     def track(self, old_gray, new_gray):
@@ -63,7 +66,12 @@ class NeedleTracker(im):
 
 class LarvaTracker:
     def __init__(self):
-        self.po = [0, 0]
+        self.p0 = []
+    def init_p0(self, p0s):
+        self.p0 = p0s
+
+    def track(self):
+        return []
 
 
 def Tracking(success,

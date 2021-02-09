@@ -81,8 +81,8 @@ class BehaviorQuantify:
         self.larva_skeletons = []
         self.im_shape = im_shape
 
-        self.needle_tracker = None
-        self.larva_tracker = None
+        self.needle_tracker = NeedleTracker()
+        self.larva_tracker = LarvaTracker()
 
     def load_video(self, video):
         self.video = video
@@ -111,17 +111,27 @@ class BehaviorQuantify:
                 skel = self.get_skeleton(b)
 
                 self.larva_skeletons.append(skel)
-            self.needle_tracker = NeedleTracker(needle_point)
+            self.needle_tracker.init_p0(needle_point)
+
+    def preprocessing(self, im):
+        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        _, (well_x, well_y, _), im_well = well_detection(im, gray)
+        im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+
+        return im_well
 
     def quantify(self):
         moving_positions = []
         radiuses = []
         response_begin_time = 0
         Response_time = 0
+        old_gray = self.preprocessing(self.video[0])
         for im in self.video[1:]:
-            gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-            _, (well_x, well_y, _), im_well = well_detection(im, gray)
-            im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+            new_gray = self.preprocessing(im)
+
+            needle_point = self.needle_tracker.track(old_gray, new_gray)
+
+            larva_points = self.larva_tracker.track()
 
 if __name__ == '__main__':
     video_path = "./Methods/Multi-fish_experiments/20200121/5/body/WT_153930_Speed25.avi"
