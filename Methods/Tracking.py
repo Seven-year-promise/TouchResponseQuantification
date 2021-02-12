@@ -66,12 +66,54 @@ class NeedleTracker:
 
 class LarvaTracker:
     def __init__(self):
+        feature_params = dict(maxCorners=20,
+                              qualityLevel=0.8,
+                              minDistance=7,
+                              blockSize=50)
+        # Parameters for lucas kanade optical flow
+        self.lk_params = dict(winSize=(15, 15),
+                              maxLevel=2,
+                              criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
         self.p0 = []
-    def init_p0(self, p0s):
-        self.p0 = p0s
 
-    def track(self):
-        return []
+    def init_p0(self, init_point):
+        self.p0 = np.array([[init_point[1], init_point[0]]])
+
+    def track(self, old_gray, new_gray):
+        good_new = optical_flow(old_gray, new_gray, self.p0, self.lk_params)
+        if len(good_new) == 0:
+            good_new = self.p0[0]
+        (new_x, new_y) = (((int))(np.round(good_new[0][0])), (int)(np.round(good_new[0][1])))
+        # cv2.imshow("needle", frame_gray)
+        # cv2.waitKey(1)
+        if new_x < 7:
+            new_x = 7
+        if new_y < 7:
+            new_y = 7
+        if new_x > 473:
+            new_x = 473
+        if new_y > 473:
+            new_y = 473
+        (y_offset, x_offset) = self.needle_usingMaxima(new_gray[(new_y - 7):(new_y + 7), (new_x - 7):(new_x + 7)])
+        new_x = new_x - 7 + x_offset
+        new_y = new_y - 7 + y_offset
+        good_new[0][0] = new_x
+        good_new[0][1] = new_y
+        self.p0 = good_new.reshape(-1, 1, 2)
+        return good_new
+
+    def needle_usingMaxima(self, gray, blur='false'):
+        """
+        given an image, find the lowest pixel
+        return: h, w
+        """
+        if blur:
+            gray = cv2.medianBlur(gray, 3)
+        threshold = np.min(np.array(gray, dtype=np.int))
+        min_index = np.where(gray == threshold)
+        cy = (int)(np.round(np.average(min_index[0])))
+        cx = (int)(np.round(np.average(min_index[1])))
+        return (cy, cx)
 
 
 def Tracking(success,

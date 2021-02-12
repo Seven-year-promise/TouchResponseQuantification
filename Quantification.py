@@ -131,16 +131,27 @@ class BehaviorQuantify:
 
             needle_point = self.needle_tracker.track(old_gray, new_gray)
 
-            larva_points = self.larva_tracker.track()
+            #larva_points = self.larva_tracker.track()
+
+            tracked_im = im.copy()
+            #for ct, cr in zip(larva_centers, COLORS[:len(larva_centers)]):
+            tracked_im = cv2.circle(tracked_im, center=(needle_point[1], needle_point[0]), radius=2, color=(0, 255,0), thickness=2)
+            cv2.imshow("tracked", tracked_im)
+            cv2.waitKey(1)
 
 if __name__ == '__main__':
     video_path = "./Methods/Multi-fish_experiments/20200121/5/body/WT_153930_Speed25.avi"
     video = []
+    behav_quantify = BehaviorQuantify(480, model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
+
     cap = cv2.VideoCapture(video_path)
     success, frame = cap.read()
     while success:
         video.append(frame)
         success, frame = cap.read()
     cap.release()
-    larva_tracking(video[3000:4000], model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
+    behav_quantify.load_video(video)
+    behav_quantify.quantification_init()
+    behav_quantify.quantification_init()
+    #larva_tracking(video[3000:4000], model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
     cv2.destroyAllWindows()
