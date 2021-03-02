@@ -8,9 +8,9 @@ from skimage.feature import hog
 from skimage.morphology import skeletonize
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--video_path', type=str, default = 'manually2.avi',
+parser.add_argument('--video_path', type=str, default = './tracking_saved/sparse_slow.avi',
                    help='sum the integers (default: find the max)')
-parser.add_argument('--save_path', type=str, default = 'speed_changed2.avi',
+parser.add_argument('--save_path', type=str, default = 'sparse_slow_changed2.avi',
                    help='sum the integers (default: find the max)')
 args = parser.parse_args()
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     while success:
         success, frame = cap.read()
         fame_id += 1
-        if fame_id%30 == 0:
+        if fame_id%1 == 0:
             #frame = cv2.flip(frame, 0)
 
             out.write(frame)

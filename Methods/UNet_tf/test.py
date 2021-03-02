@@ -191,6 +191,41 @@ class UNetTestTF:
         #cv2.waitKey(0)
         return im_skele, fish_points
 
+    def find_fish_point(self, fish_mask, fish_blob, percentages = [0.01]):
+        """
+        :param fish_mask: the binary of the fish: 0/1
+        :param needle_center: the center of the needle: y, x
+        :param fish_blobs: the coordinates of the area of the fish
+        :param percentages: list of the points to be touched in percentage coordinate system
+        :return: list of the coordinates to be touched for the closest fish to the needle
+        """
+
+        c_y, c_x = np.round(np.average(np.array(fish_blob), axis=0))
+
+        closest_center = [c_y, c_x]
+        fish_binary = np.zeros(fish_mask.shape, dtype=np.uint8)
+        fish_binary[fish_blob[:, 0], fish_blob[:, 1]] = 1
+
+        #moments = cv2.moments(fish_binary*255)
+        #cen_x = moments["m10"] / moments["m00"]
+        #cen_y = moments["m01"] / moments["m00"]
+        #a = moments["m20"] - moments["m00"]*cen_x*cen_x
+        #b = 2*moments["m11"] - moments["m00"] * (cen_x**2 + cen_y**2);
+        #c = moments["m02"] - moments["m00"]*cen_y*cen_y
+        #theta = 0.5 *math.atan((2*moments["m11"]) / (moments["m20"] - moments["m02"]))
+        #theta = (theta/math.pi) *180#0 if a==c else math.atan2(b, a-c)/2.0
+
+        skeleton = skeletonize(fish_binary)
+        skeleton_cor = np.where(skeleton>0)
+        skeleton_cor = np.array([skeleton_cor[0], skeleton_cor[1]]).reshape(2, -1)
+        point1 = skeleton_cor[:, 0]
+        point2 = skeleton_cor[:, -1]
+        #theta = get_angle(point1, point2, closest_center)
+        slope, fish_points = get_points(point1, point2, closest_center, percentages)
+        #cv2.imshow("fish", im_skele)
+        #cv2.waitKey(0)
+        return fish_points
+
     def get_keypoint(self, threshold, size_fish):
         out_needle, out_fish, fish_blobs = self.predict(threshold=threshold, size = size_fish)
         needle_y, needle_x = self.find_needle_point(needle_mask = out_needle)
