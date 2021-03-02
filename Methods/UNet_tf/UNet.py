@@ -31,7 +31,7 @@ class UNet(object):
         # 标注
         self.annotations = tf.placeholder(tf.float32, shape=[None, self.conf.im_size, self.conf.im_size, 2], name='annotations')
         # 构建UNet网络结构
-        self.predict = self.LightCNN2() #.inference()
+        self.predict = self.inference()
         # 损失函数，分类精度
         self.loss_op = self.combined_loss()
         self.accuracy_op = self.accuracy()

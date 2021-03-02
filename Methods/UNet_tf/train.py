@@ -29,4 +29,4 @@ def configure():
 
 if __name__ == '__main__':
     model = UNet(tf.Session(), configure())
-    model.predicts()
+    model.train()
