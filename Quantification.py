@@ -55,10 +55,10 @@ COLORS = [[133, 145, 220],
           [177, 145, 234]]
 
 DRAW_FLOW_LINE = False
-DRAW_FLOW_POINT = True
+DRAW_FLOW_POINT = False
 SAVE = False
 SAVE_VIDEO = True
-SHOW = True
+SHOW = False
 SAVE_X_MIN = 100
 SAVE_X_MAX = 380
 SAVE_Y_MIN = 100
@@ -282,10 +282,12 @@ class BehaviorQuantify:
                                           color=c, thickness=4)
 
             if SAVE:
-                cv2.imwrite("tracking_saved/particles_line/" + str(id_im) + ".jpg", tracked_im[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
-                cv2.imwrite("tracking_saved/particles_point/" + str(id_im) + ".jpg", tracked_im2[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
-                cv2.imwrite("tracking_saved/particles_ori/" + str(id_im) + ".jpg", im_with_pars[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
-                cv2.imwrite("tracking_saved/particles_difference/" + str(id_im) + ".jpg", im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+                if not os.path.exists(save_path + "/" + video_name):
+                    os.makedirs(save_path + "/" + video_name)
+                cv2.imwrite(save_path + "/" + video_name + "/particles_line" + str(id_im) + ".jpg", tracked_im[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+                cv2.imwrite(save_path + "/" + video_name + "/particles_point" + str(id_im) + ".jpg", tracked_im2[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+                cv2.imwrite(save_path + "/" + video_name + "/particles_ori" + str(id_im) + ".jpg", im_with_pars[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+                cv2.imwrite(save_path + "/" + video_name + "/particles_difference" + str(id_im) + ".jpg", im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 print("saving pictures")
             if SHOW:
                 cv2.imshow("tracked", tracked_im2[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
@@ -344,6 +346,7 @@ class BehaviorQuantify:
             plt.ylabel("distance (pixels)")
             plt.title("The Distance that the Larva Moved")
             plt.savefig(save_path + video_name + 'moving_distance.png',)
+            plt.close()
             print("saving videos")
             #out.release()
             out2.release()
@@ -351,7 +354,7 @@ class BehaviorQuantify:
             #out4.release()
 
 if __name__ == '__main__':
-    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
+    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/OriUNet/models_rotate_contrast/UNet22000.pb")
     base_path = "./Methods/Multi-fish_experiments/"
     date = ["20210219/"]
     capacity = ["4/"]
