@@ -31,7 +31,7 @@ class UNet(object):
         # 标注
         self.annotations = tf.placeholder(tf.float32, shape=[None, self.conf.im_size, self.conf.im_size, 2], name='annotations')
         # 构建UNet网络结构
-        self.predict = self.inference()
+        self.predict = self.inference() #self.LightCNN2() #
         # 损失函数，分类精度
         self.loss_op = self.combined_loss()
         self.accuracy_op = self.accuracy()
@@ -627,6 +627,7 @@ class UNet(object):
         Lode trained model.
         '''
         #print('Loading model...')
+        tf.reset_default_graph()
         self.graph = tf.Graph()
 
         with tf.gfile.GFile(model_path, 'rb') as f:
@@ -643,17 +644,17 @@ class UNet(object):
             self.input = tf.placeholder(np.float32, shape=[None, 240, 240, 1], name='x')
             tf.import_graph_def(graph_def, {'x': self.input})
 
-        self.graph.finalize()
+
 
         #print('Model loading complete!')
 
         # Get layer names
         layers = [op.name for op in self.graph.get_operations()]
-
+        """
         for layer in layers:
             print(layer)
 
-        """
+        
         # Check out the weights of the nodes
         weight_nodes = [n for n in graph_def.node if n.op == 'Const']
         for n in weight_nodes:
@@ -666,15 +667,17 @@ class UNet(object):
         # self.sess = tf.InteractiveSession(graph = self.graph)
         self.output = self.graph.get_tensor_by_name("import/cnn/output:0")
         self.sess = tf.Session(graph=self.graph)
+        self.graph.finalize()
 
     def load_graph(self, model_path, steps):
         self.sess = tf.Session()
         saver = tf.train.import_meta_graph(model_path + "UNet.ckpt-" + str(steps) + ".meta")
+        print(model_path + "UNet.ckpt-" + str(steps) + ".meta")
         saver.restore(self.sess, tf.train.latest_checkpoint(model_path))
 
         self.graph = tf.get_default_graph()
 
-        print(self.graph.get_operations())
+        #print(self.graph.get_operations())
         self.input = self.graph.get_tensor_by_name("x:0")
 
         self.output = self.graph.get_tensor_by_name("cnn/output:0")

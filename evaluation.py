@@ -7,6 +7,8 @@ Evaluation for image segmentation.
 import numpy as np
 import time
 import os
+import csv
+
 from Methods.UNet_tf.test import *
 import cv2
 from Methods.FeatureExtraction import Binarization
@@ -19,7 +21,7 @@ otsu = Binarization(method = "Otsu")
 lrb = Binarization(method = "LRB")
 rg = Binarization(method = "RG")
 unet_test = UNetTestTF()
-unet_test.model.load_graph(model_path="Methods/UNet_tf/models_ori/UNet1000.pb")
+unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -845,80 +847,151 @@ def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
     plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
     plt.show()
 
-def UNet_select_epoch(im_anno_list, modeldir, model_type = "Models without augmentation"):
-    model_files = [f for f in os.listdir(modeldir) if f.endswith('.pb')]
+def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200/"):
+    model_dirs = ["Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_noise_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_noise_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_ori_fnished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_contrast_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_contrast_noise_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_finished/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_noise_finished/"]
+    eval_csv_results= ["random_contrast",
+                   "random_contrast_gaussian_noise",
+                   "without_augmentation",
+                   "random_rotation_and_contrast",
+                   "random_rotation_contrast_gaussian_noise",
+                   "random_rotation",
+                   "random_rotation_gaussian_noise"]
+    model_types = ["random contrast",
+                   "random contrast and gaussian noise",
+                   "without augmentation",
+                   "random rotation and contrast",
+                   "random rotation and contrast and gaussian noise",
+                   "random rotation",
+                   "random rotation and gaussian noise"]
 
-    def model_num(x):
-        return (int(x[4:-3]))
+    COLORS = ["b", "g", "r", "c", "m", "y", "k"]
+    fig, axs = plt.subplots(2, 2)
+    lines_axis00 = []
+    lines_axis01 = []
+    lines_axis10 = []
+    lines_axis11 = []
 
-    sorted_files = sorted(model_files, key=model_num)
+    for model_dir, model_type, color, eval_file_name in zip(model_dirs, model_types, COLORS, eval_csv_results):
+        model_files = [f for f in os.listdir(model_dir) if f.endswith('.pb')]
+        PC_Needle_path = save_path + eval_file_name + "_PC_Needle.csv"
+        JI_Needle_path = save_path + eval_file_name + "_JI_Needle.csv"
+        PC_Larva_path = save_path + eval_file_name + "_PC_Larva.csv"
+        JI_Larva_path = save_path + eval_file_name + "_JI_Larva.csv"
+        PC_Needle_csv_file = open(PC_Needle_path, "w", newline="")
+        PC_Needle_csv_writer = csv.writer(PC_Needle_csv_file, delimiter=",")
+        JI_Needle_csv_file = open(JI_Needle_path, "w", newline="")
+        JI_Needle_csv_writer = csv.writer(JI_Needle_csv_file, delimiter=",")
+        PC_Larva_csv_file = open(PC_Larva_path, "w", newline="")
+        PC_Larva_csv_writer = csv.writer(PC_Larva_csv_file, delimiter=",")
+        JI_Larva_csv_file = open(JI_Larva_path, "w", newline="")
+        JI_Larva_csv_writer = csv.writer(JI_Larva_csv_file, delimiter=",")
 
-    file_num = len(sorted_files)
-    epoches = np.arange(1, file_num+1)*500
+        def model_num(x):
+            return (int(x[4:-3]))
 
-    ave_needle_accs = []
-    ave_fish_accs = []
-    ave_needle_ius = []
-    ave_fish_ius = []
-    print(sorted_files)
-    for m_f in sorted_files:
-        print(m_f)
-        unet_test.model.load_graph(model_path=modeldir + m_f)
-        ave_needle_acc = 0
-        ave_fish_acc = 0
-        ave_needle_iu = 0
-        ave_fish_iu = 0
-        num_needle = 0
-        num_fish = 0
-        num_im = len(im_anno_list)
-        i = 0
-        for im_anno in im_anno_list:
-            i += 1
-            im, anno_needle, anno_fish = im_anno
+        sorted_files = sorted(model_files, key=model_num)
 
-            unet_test.load_im(im)
-            needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
-                                                                                             size_fish=44)
+        file_num = len(sorted_files)
+        epoches = np.arange(1, file_num+1)*500
 
-            if len(np.where(anno_needle == 1)[0]) > 0:
-                acc_needle = mean_accuracy(needle_binary, anno_needle)
-                ave_needle_acc += acc_needle
-                iu_needle = mean_IU(needle_binary, anno_needle)
-                ave_needle_iu += iu_needle
-                num_needle += 1
+        ave_needle_accs = []
+        ave_fish_accs = []
+        ave_needle_ius = []
+        ave_fish_ius = []
+        print(sorted_files)
+        file_cnt = 1
+        for m_f in sorted_files[1:]:
+            print(m_f)
+            unet_test.model.load_graph_frozen(model_path=model_dir + m_f)
+            ave_needle_acc = 0
+            ave_fish_acc = 0
+            ave_needle_iu = 0
+            ave_fish_iu = 0
+            num_needle = 0
+            num_fish = 0
+            num_im = len(im_anno_list)
+            i = 0
+            for im_anno in im_anno_list:
+                i += 1
+                im, anno_needle, anno_fish = im_anno
 
-            if len(np.where(anno_fish == 1)[0]) > 0:
-                acc_fish = mean_accuracy(fish_binary, anno_fish)
-                ave_fish_acc += acc_fish
-                iu_fish = mean_IU(fish_binary, anno_fish)
-                ave_fish_iu += iu_fish
-                num_fish += 1
-            # cv2.imshow("binary", binary*255)
-            # cv2.waitKey(0)
-            # cv2.imshow("anno", anno*255)
-            # cv2.waitKey(0)
-        ave_needle_acc /= num_needle
-        ave_needle_iu /= num_needle
-        ave_fish_acc /= num_fish
-        ave_fish_iu /= num_fish
-        print(ave_needle_acc, ave_needle_iu, ave_fish_acc, ave_fish_iu)
-        ave_needle_accs.append(ave_needle_acc)
-        ave_needle_ius.append(ave_needle_iu)
+                unet_test.load_im(im)
+                needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
+                                                                                                 size_fish=44)
 
-        ave_fish_accs.append(ave_fish_acc)
-        ave_fish_ius.append(ave_fish_iu)
+                if len(np.where(anno_needle == 1)[0]) > 0:
+                    acc_needle = mean_accuracy(needle_binary, anno_needle)
+                    ave_needle_acc += acc_needle
+                    iu_needle = mean_IU(needle_binary, anno_needle)
+                    ave_needle_iu += iu_needle
+                    num_needle += 1
 
-    plt.plot(epoches, ave_needle_accs, marker=".")
-    plt.plot(epoches, ave_needle_ius, marker="s")
-    plt.plot(epoches, ave_fish_accs, marker="*")
-    plt.plot(epoches, ave_fish_ius, marker="h")
+                if len(np.where(anno_fish == 1)[0]) > 0:
+                    acc_fish = mean_accuracy(fish_binary, anno_fish)
+                    ave_fish_acc += acc_fish
+                    iu_fish = mean_IU(fish_binary, anno_fish)
+                    ave_fish_iu += iu_fish
+                    num_fish += 1
+                # cv2.imshow("binary", binary*255)
+                # cv2.waitKey(0)
+                # cv2.imshow("anno", anno*255)
+                # cv2.waitKey(0)
+            ave_needle_acc /= num_needle
+            ave_needle_iu /= num_needle
+            ave_fish_acc /= num_fish
+            ave_fish_iu /= num_fish
+            print(ave_needle_acc, ave_needle_iu, ave_fish_acc, ave_fish_iu)
+            ave_needle_accs.append(ave_needle_acc)
+            ave_needle_ius.append(ave_needle_iu)
 
-    plt.legend(labels=["PC Needle", "JI Needle", "PC Larva", "JI Larva"], loc="best")
-    plt.xlabel("Training Epoch")
-    plt.ylabel("Performance Indexes")
-    plt.title(model_type)
+            ave_fish_accs.append(ave_fish_acc)
+            ave_fish_ius.append(ave_fish_iu)
+
+            PC_Needle_csv_writer.writerow([file_cnt*500, ave_needle_acc])
+            JI_Needle_csv_writer.writerow([file_cnt*500, ave_needle_iu])
+            PC_Larva_csv_writer.writerow([file_cnt*500, ave_fish_acc])
+            JI_Larva_csv_writer.writerow([file_cnt*500, ave_fish_iu])
+
+            file_cnt += 1
+        PC_Needle_csv_file.close()
+        JI_Needle_csv_file.close()
+        PC_Larva_csv_file.close()
+        JI_Larva_csv_file.close()
+    '''
+        line00, = axs[0, 0].plot(epoches, ave_needle_accs, color=color)
+        lines_axis00.append(line00)
+        line01, = axs[0, 1].plot(epoches, ave_needle_ius, color=color)
+        lines_axis01.append(line01)
+        line10, = axs[1, 0].plot(epoches, ave_fish_accs, color=color)
+        lines_axis10.append(line10)
+        line11, = axs[1, 1].plot(epoches, ave_fish_ius, color=color)
+        lines_axis11.append(line11)
+
+    axs[0, 0].set_ylabel('PC Needle')
+    axs[0, 0].set_xlabel("Training Epoch")
+    axs[0, 1].set_ylabel('JI Needle')
+    axs[0, 1].set_xlabel("Training Epoch")
+    axs[1, 0].set_ylabel('PC Larva')
+    axs[1, 0].set_xlabel("Training Epoch")
+    axs[1, 1].set_ylabel('JI Larva')
+    axs[1, 1].set_xlabel("Training Epoch")
+
+    fig.legend(lines_axis00, model_types, 'upper right')
+    fig.legend(lines_axis01, model_types, 'upper right')
+    fig.legend(lines_axis10, model_types, 'upper right')
+    fig.legend(lines_axis11, model_types, 'upper right')
+
+    #plt.tight_layout()
     plt.show()
-
+    plt.legend(labels=["PC Needle", "JI Needle", "", "JI Larva"], loc="best")
+    '''
 '''
 Exceptions
 '''
@@ -932,24 +1005,26 @@ class EvalSegErr(Exception):
         return repr(self.value)
 
 if __name__ == '__main__':
-    test_im_path = "Methods/LightUNet/dataset/test/Images/"
-    test_anno_path = "Methods/LightUNet/dataset/test/annotation/"
-    ims_name = os.listdir(test_im_path)
-    annos_name = os.listdir(test_anno_path)
+    test_im_path = "Methods/UNet_tf/data/train/Images/"
+    test_anno_path = "Methods/UNet_tf/data/train/annotation/"
+
     im_anno_list = []
-    for im_name in ims_name:
-        name = im_name[:-4]
-        im = cv2.imread(test_im_path + im_name)
-        anno = cv2.imread(test_anno_path + name + "_label.tif")
-        #anno = cv2.erode(anno, (3, 3), iterations=2)
-        anno = anno[:, :, 1]
-        anno_needle = np.zeros(anno.shape, dtype=np.uint8)
-        anno_needle[np.where(anno == 1)] = 1
-        anno_fish = np.zeros(anno.shape, dtype=np.uint8)
-        anno_fish[np.where(anno == 2)] = 1
+    for date in ["01202/", "01203/", "01204/", "01205/"]:
+        ims_name = os.listdir(test_im_path + date)
+        annos_name = os.listdir(test_anno_path + date)
+        for im_name in ims_name:
+            name = im_name[:-4]
+            im = cv2.imread(test_im_path + date + im_name)
+            anno = cv2.imread(test_anno_path + date + name + "_label.tif")
+            #anno = cv2.erode(anno, (3, 3), iterations=2)
+            anno = anno[:, :, 1]
+            anno_needle = np.zeros(anno.shape, dtype=np.uint8)
+            anno_needle[np.where(anno == 1)] = 1
+            anno_fish = np.zeros(anno.shape, dtype=np.uint8)
+            anno_fish[np.where(anno == 2)] = 1
 
-        im_anno_list.append([im, anno_needle, anno_fish])
-
+            im_anno_list.append([im, anno_needle, anno_fish])
+    print("total images", len(im_anno_list))
     #test_binarization(im_anno_list)
     #test_Otsu(im_anno_list)
     #test_LRB(im_anno_list)
@@ -958,6 +1033,7 @@ if __name__ == '__main__':
     #test_UNet_detailed(im_anno_list, save=True)
     #test_UNet_select_size_thre(im_anno_list)
     #test_all_recall_false_ratio(im_anno_list, 20)
+    #test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
     #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")
-    unet_test.model.load_graph(model_path="Methods/UNet_tf/models_noise/UNet14000.pb")
-    test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
+    unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
+    UNet_select_epoch(im_anno_list)
