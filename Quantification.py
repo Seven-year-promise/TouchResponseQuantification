@@ -57,7 +57,7 @@ COLORS = [[133, 145, 220],
 DRAW_FLOW_LINE = False
 DRAW_FLOW_POINT = False
 SAVE = False
-SAVE_VIDEO = True
+SAVE_VIDEO = False
 SHOW = False
 SAVE_X_MIN = 100
 SAVE_X_MAX = 380
@@ -371,7 +371,7 @@ if __name__ == '__main__':
                         video_cnt += 1
                         print(this_path + f)
                         video_path = this_path + f
-                        #video_path = "./Methods/Multi-fish_experiments/20210122/4/tail/WT_170822_Speed25.avi"
+                        video_path = "./Methods/Multi-fish_experiments/20210219/4/head/WT_152724_Speed25.avi"
                         video = []
                         cap = cv2.VideoCapture(video_path)
                         success, frame = cap.read()
