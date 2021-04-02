@@ -419,7 +419,8 @@ class UNet(object):
         #with tf.device("/device:XLA_GPU:0"):
         tf.train.start_queue_runners(sess=self.sess)
         print('Begin Train')
-
+        print('Augmentation rotation:', self.conf.rotation, ' contrast:', self.conf.contrast, ' noise:',
+              self.conf.noise)
         needle_accs = []
         needle_ius = []
         fish_accs = []
@@ -431,7 +432,7 @@ class UNet(object):
 
 
             x, y = self.sess.run([images, labels])
-            x, y = self.augmentation(240, x, y, random_rotate = False, contrast = True, noise = True)
+            x, y = self.augmentation(240, x, y, random_rotate = self.conf.rotation, contrast = self.conf.contrast, noise = self.conf.noise)
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)
@@ -577,7 +578,7 @@ class UNet(object):
 
     def predicts(self, threshold = 0.9):
         model_path = "LightCNN2/models_rotate_contrast/"
-        self.load_graph(model_path, 3000)
+        self.load_graph_step(model_path, 3000)
         standard = self.images/255 - 0.5 #tf.image.per_image_standardization(self.images)
 
         print(time.clock())
@@ -669,11 +670,24 @@ class UNet(object):
         self.sess = tf.Session(graph=self.graph)
         self.graph.finalize()
 
-    def load_graph(self, model_path, steps):
+    def load_graph_step(self, model_path, steps):
         self.sess = tf.Session()
         saver = tf.train.import_meta_graph(model_path + "UNet.ckpt-" + str(steps) + ".meta")
         print(model_path + "UNet.ckpt-" + str(steps) + ".meta")
-        saver.restore(self.sess, tf.train.latest_checkpoint(model_path))
+        saver.restore(self.sess, tf.train.latest_checkpoint(model_path)) # add the latest model, not current model
+
+        self.graph = tf.get_default_graph()
+
+        #print(self.graph.get_operations())
+        self.input = self.graph.get_tensor_by_name("x:0")
+
+        self.output = self.graph.get_tensor_by_name("cnn/output:0")
+
+    def load_graph(self, model_path, ckpt_path):
+        self.sess = tf.Session()
+        saver = tf.train.import_meta_graph(model_path)
+        print(model_path, ckpt_path)
+        saver.restore(self.sess, tf.train.load_checkpoint(ckpt_path))
 
         self.graph = tf.get_default_graph()
 

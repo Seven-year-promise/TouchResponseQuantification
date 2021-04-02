@@ -21,7 +21,7 @@ otsu = Binarization(method = "Otsu")
 lrb = Binarization(method = "LRB")
 rg = Binarization(method = "RG")
 unet_test = UNetTestTF()
-unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
+#unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -847,38 +847,40 @@ def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
     plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
     plt.show()
 
-def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200/"):
-    model_dirs = ["Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_noise_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_noise_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_ori_fnished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_contrast_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_contrast_noise_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_finished/",
-                  "Methods/UNet_tf/ori_UNet/models-trained-on200/models_rotate_noise_finished/"]
+def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
+    model_dirs = ["Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_contrast/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_contrast_noise/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_noise/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_ori/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast_noise/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation/",
+                  "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_noise/"]
     eval_csv_results= ["random_contrast",
-                   "random_contrast_gaussian_noise",
-                   "without_augmentation",
-                   "random_rotation_and_contrast",
-                   "random_rotation_contrast_gaussian_noise",
-                   "random_rotation",
-                   "random_rotation_gaussian_noise"]
+                       "random_contrast_gaussian_noise",
+                       "gaussian_noise",
+                       "without_augmentation",
+                       "random_rotation_and_contrast",
+                       "random_rotation_contrast_gaussian_noise",
+                       "random_rotation",
+                       "random_rotation_gaussian_noise"]
     model_types = ["random contrast",
                    "random contrast and gaussian noise",
+                   "gaussian noise",
                    "without augmentation",
                    "random rotation and contrast",
                    "random rotation and contrast and gaussian noise",
                    "random rotation",
                    "random rotation and gaussian noise"]
 
-    COLORS = ["b", "g", "r", "c", "m", "y", "k"]
+    COLORS = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:olive"]
     fig, axs = plt.subplots(2, 2)
     lines_axis00 = []
     lines_axis01 = []
     lines_axis10 = []
     lines_axis11 = []
 
-    for model_dir, model_type, color, eval_file_name in zip(model_dirs, model_types, COLORS, eval_csv_results):
+    for model_dir, model_type, color, eval_file_name in zip(model_dirs[3:], model_types[3:], COLORS[3:], eval_csv_results[3:]):
         model_files = [f for f in os.listdir(model_dir) if f.endswith('.pb')]
         PC_Needle_path = save_path + eval_file_name + "_PC_Needle.csv"
         JI_Needle_path = save_path + eval_file_name + "_JI_Needle.csv"
@@ -907,8 +909,8 @@ def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models
         ave_fish_ius = []
         print(sorted_files)
         file_cnt = 1
-        for m_f in sorted_files[1:]:
-            print(m_f)
+        for m_f in sorted_files:
+            #print(m_f)
             unet_test.model.load_graph_frozen(model_path=model_dir + m_f)
             ave_needle_acc = 0
             ave_fish_acc = 0
@@ -1005,8 +1007,8 @@ class EvalSegErr(Exception):
         return repr(self.value)
 
 if __name__ == '__main__':
-    test_im_path = "Methods/UNet_tf/data/train/Images/"
-    test_anno_path = "Methods/UNet_tf/data/train/annotation/"
+    test_im_path = "./Methods/UNet_tf/data/test/Images/"
+    test_anno_path = "./Methods/UNet_tf/data/test/annotations/"
 
     im_anno_list = []
     for date in ["01202/", "01203/", "01204/", "01205/"]:
@@ -1035,5 +1037,5 @@ if __name__ == '__main__':
     #test_all_recall_false_ratio(im_anno_list, 20)
     #test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
     #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")
-    unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
+    #unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
     UNet_select_epoch(im_anno_list)
