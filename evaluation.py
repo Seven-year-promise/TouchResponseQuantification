@@ -689,6 +689,14 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
     ave_fish_accs = []
     ave_needle_ius = []
     ave_fish_ius = []
+    save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"
+    PC_Larva_path = save_path + "size_thre_PC_Larva.csv"
+    JI_Larva_path = save_path + "size_thre_JI_Larva.csv"
+
+    PC_Larva_csv_file = open(PC_Larva_path, "w", newline="")
+    PC_Larva_csv_writer = csv.writer(PC_Larva_csv_file, delimiter=",")
+    JI_Larva_csv_file = open(JI_Larva_path, "w", newline="")
+    JI_Larva_csv_writer = csv.writer(JI_Larva_csv_file, delimiter=",")
     for threshold in range(0, 70, 1):
         ave_needle_acc = 0
         ave_fish_acc = 0
@@ -733,15 +741,25 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
         ave_needle_iu = ave_needle_iu / num_needle
         ave_fish_acc = ave_fish_acc / num_fish
         ave_fish_iu = ave_fish_iu / num_fish
+
         print("average needle accuracy", ave_needle_acc)
         print("average needle iu", ave_needle_iu)
 
         print("average fish accuracy", ave_fish_acc)
         print("average fish iu", ave_fish_iu)
+        """
         ave_needle_accs.append(ave_needle_acc)
         ave_needle_ius.append(ave_needle_iu)
         ave_fish_accs.append(ave_fish_acc)
         ave_fish_ius.append(ave_fish_iu)
+        """
+
+        PC_Larva_csv_writer.writerow([threshold, ave_fish_acc])
+        JI_Larva_csv_writer.writerow([threshold, ave_fish_iu])
+
+    PC_Larva_csv_file.close()
+    JI_Larva_csv_file.close()
+    """
     plt.plot(ave_fish_accs)
     plt.plot(ave_fish_ius)
     plt.show()
@@ -749,6 +767,7 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
 
 
     print("time per frame", time_used / num_im)
+    """
 
 def test_Unet_split_recall_false_ratio(im_anno_list, thre_steps = 100):
     threshold = np.arange(thre_steps)/thre_steps
