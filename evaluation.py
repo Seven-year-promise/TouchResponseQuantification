@@ -684,7 +684,7 @@ def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
            ave_fish_false_ratio / num_fish
 
 def test_UNet_select_size_thre(im_anno_list, save = False):
-
+    unet_test.model.load_graph_frozen("Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     ave_needle_accs = []
     ave_fish_accs = []
     ave_needle_ius = []
@@ -704,7 +704,7 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
             im, anno_needle, anno_fish = im_anno
 
             unet_test.load_im(im)
-            needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=threshold)
+            needle_binary, _, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=threshold)
 
             if save:
                 save_im = np.zeros(needle_binary.shape, np.uint8)
@@ -848,6 +848,12 @@ def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
     plt.show()
 
 def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
+    """
+    test all models of U-Net with different augmentation methods and find out the best model on the evaluation dataset
+    :param im_anno_list:
+    :param save_path:
+    :return:
+    """
     model_dirs = ["Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_contrast/",
                   "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_contrast_noise/",
                   "Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_noise/",
@@ -925,7 +931,7 @@ def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models
                 im, anno_needle, anno_fish = im_anno
 
                 unet_test.load_im(im)
-                needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
+                needle_binary, fish_binary, _, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
                                                                                                  size_fish=44)
 
                 if len(np.where(anno_needle == 1)[0]) > 0:
@@ -1033,9 +1039,9 @@ if __name__ == '__main__':
     #(im_anno_list)
     #test_UNet(im_anno_list)
     #test_UNet_detailed(im_anno_list, save=True)
-    #test_UNet_select_size_thre(im_anno_list)
+    test_UNet_select_size_thre(im_anno_list)
     #test_all_recall_false_ratio(im_anno_list, 20)
     #test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
     #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")
     #unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
-    UNet_select_epoch(im_anno_list)
+    #UNet_select_epoch(im_anno_list)

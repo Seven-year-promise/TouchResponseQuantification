@@ -129,7 +129,7 @@ class UNetTestTF:
         #print(fish_binary, fish_binary.shape)
         #cv2.imshow("fish", out_binary*127)
         #cv2.waitKey(0)
-        return out_needle, out_fish, fish_blobs
+        return out_needle, out_fish, optimized_binary, fish_blobs
 
     def find_needle_point(self, needle_mask):
         """
@@ -242,7 +242,7 @@ class UNetTestTF:
         return fish_points
 
     def get_keypoint(self, threshold, size_fish):
-        out_needle, out_fish, fish_blobs = self.predict(threshold=threshold, size = size_fish)
+        out_needle, out_fish, size_thre_fish_binary, fish_blobs = self.predict(threshold=threshold, size = size_fish)
         needle_y, needle_x = self.find_needle_point(needle_mask = out_needle)
         if len(fish_blobs)>0:
             im_with_points, fish_points = self.find_fish_points(fish_mask=out_fish, needle_center=(needle_y, needle_x),
@@ -254,7 +254,7 @@ class UNetTestTF:
         #cv2.imshow("fish", out_fish * 255)
         #cv2.waitKey(0)
 
-        return out_needle, out_fish, im_with_points, fish_points
+        return out_needle, out_fish, size_thre_fish_binary, im_with_points, fish_points
 
 def get_angle(point1, point2, fish_center):
     y1, x1 = point1
