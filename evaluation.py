@@ -745,6 +745,7 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
         ave_fish_acc = ave_fish_acc / num_fish
         ave_fish_iu = ave_fish_iu / num_fish
 
+        print("threshold:", threshold)
         print("average needle accuracy", ave_needle_acc)
         print("average needle iu", ave_needle_iu)
 
