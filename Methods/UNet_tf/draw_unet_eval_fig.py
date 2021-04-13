@@ -4,7 +4,7 @@ import numpy as np
 I = 0
 
 def draw_eval_fig():
-    model_dir = "./OriUNet/models-trained-on200/performance/"
+    model_dir = "./ori_UNet/performance/"
     eval_csv_results= ["random_contrast",
                    "random_contrast_gaussian_noise",
                    "gaussian_noise",

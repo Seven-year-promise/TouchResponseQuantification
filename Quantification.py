@@ -207,6 +207,30 @@ class BehaviorQuantify:
         #print(distance)
         return distance
 
+    def local_seg(self, frame, larva_points):
+        """
+        segmentation for the local area of the larva
+        :param frame: frame to generate the local area of the larva
+        :param larva_points: the particles output from the tracking procedure
+        :return:
+        """
+        # the fish area should be enlarged to 40 by 40
+        larva_points = np.array(larva_points)
+        x_min = np.min(larva_points[:, 0])
+        y_min = np.min(larva_points[:, 1])
+        x_max = np.max(larva_points[:, 0]) + 1
+        y_max = np.max(larva_points[:, 1]) + 1
+        x_offset = 40 - (x_max - x_min)
+        x_min = x_min - x_offset //2
+        x_max = x_max + x_offset //2 + 1
+        y_offset = 40 - (y_max - y_min)
+        y_min = y_min - y_offset // 2
+        y_max = y_max + y_offset // 2 + 1
+
+        larva_path = frame[y_min:y_max, x_min:x_max]
+
+
+
     def quantify(self, save_path, video_name):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -239,6 +263,11 @@ class BehaviorQuantify:
             #larva_pointss.append(larva_points)
             larva_points, im_diff = self.larva_tracker2.track(previous, new_gray, 15, 0.5)
             larva_pointss.append(larva_points)
+
+            """
+            modify the larva area according to the rough tracking
+            """
+
             #_ = self.larva_tracker.dense_track(old_im, im)
             #_ = self.larva_tracker.difference_track(previous, new_gray, 10)
             tracked_im = im.copy()

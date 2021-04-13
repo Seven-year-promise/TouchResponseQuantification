@@ -684,15 +684,18 @@ def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
            ave_fish_false_ratio / num_fish
 
 def test_UNet_select_size_thre(im_anno_list, save = False):
-    unet_test.model.load_graph_frozen("Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+    unet_test.model.load_graph_frozen(model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     ave_needle_accs = []
     ave_fish_accs = []
     ave_needle_ius = []
     ave_fish_ius = []
-    save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"
+    save_path = "./Methods/UNet_tf/ori_UNet/models-trained-on200-2/"
     PC_Larva_path = save_path + "size_thre_PC_Larva.csv"
+    #if os.path.exists(PC_Larva_path) == False:
+    #    os.makedirs(PC_Larva_path)
     JI_Larva_path = save_path + "size_thre_JI_Larva.csv"
-
+    #if os.path.exists(JI_Larva_path) == False:
+    #    os.makedirs(JI_Larva_path)
     PC_Larva_csv_file = open(PC_Larva_path, "w", newline="")
     PC_Larva_csv_writer = csv.writer(PC_Larva_csv_file, delimiter=",")
     JI_Larva_csv_file = open(JI_Larva_path, "w", newline="")
