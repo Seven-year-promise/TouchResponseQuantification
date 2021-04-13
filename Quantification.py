@@ -4,6 +4,7 @@ from Methods.Tracking import *
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from Methods.RegionGrowing import Point, RegionGrow
 
 COLORS = [[133, 145, 220],
           [50, 145, 100],
@@ -58,7 +59,7 @@ DRAW_FLOW_LINE = False
 DRAW_FLOW_POINT = False
 SAVE = False
 SAVE_VIDEO = False
-SHOW = False
+SHOW = True
 SAVE_X_MIN = 100
 SAVE_X_MAX = 380
 SAVE_Y_MIN = 100
@@ -137,6 +138,8 @@ class BehaviorQuantify:
         self.larva_tracker = LarvaTracker()
         self.larva_tracker2 = ParticleFilter(50)
 
+        self.rg = RegionGrow()
+
     def load_video(self, video):
         self.video = video
 
@@ -159,7 +162,7 @@ class BehaviorQuantify:
             print("please load the video first")
         else:
             self.unet_test.load_im(self.video[0])
-            needle_binary, larva_binary, larva_blobs = self.unet_test.predict(threshold=0.9, size=44)
+            needle_binary, _, larva_binary, larva_blobs = self.unet_test.predict(threshold=0.9, size=44)
             cv2.imwrite("tracking_saved/original_im.jpg", self.video[0][SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
             cv2.imwrite("tracking_saved/larva_binary.jpg", larva_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
             cv2.imwrite("tracking_saved/needle_binary.jpg", needle_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
@@ -215,20 +218,51 @@ class BehaviorQuantify:
         :return:
         """
         # the fish area should be enlarged to 40 by 40
-        larva_points = np.array(larva_points)
-        x_min = np.min(larva_points[:, 0])
-        y_min = np.min(larva_points[:, 1])
-        x_max = np.max(larva_points[:, 0]) + 1
-        y_max = np.max(larva_points[:, 1]) + 1
-        x_offset = 40 - (x_max - x_min)
-        x_min = x_min - x_offset //2
-        x_max = x_max + x_offset //2 + 1
-        y_offset = 40 - (y_max - y_min)
-        y_min = y_min - y_offset // 2
-        y_max = y_max + y_offset // 2 + 1
+        fblobs = []
+        tuned_binary = np.zeros(frame.shape, np.uint8)
+        for l_p in larva_points:
+            y_ave = int(l_p[0])
+            x_ave = int(l_p[1])
+            x_min = x_ave - 20
+            x_max = x_ave + 20
+            y_min = y_ave - 20
+            y_max = y_ave + 20
 
-        larva_path = frame[y_min:y_max, x_min:x_max]
+            larva_patch = frame[y_min:y_max, x_min:x_max]
+            #blur = cv2.medianBlur(larva_patch, 5)
+            #binary = self.rg.regionGrowApply(larva_patch, [Point(20, 20)], 10)
+            #blur = cv2.GaussianBlur(im, (3, 3), 0)
+            #ret, th = cv2.threshold(larva_patch, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            ret, th = cv2.threshold(larva_patch, 220, 255, cv2.THRESH_BINARY)
+            binary = np.zeros(th.shape, np.uint8)
+            binary[np.where(th == 0)] = 1
+            binary[np.where(th == 255)] = 0
+            #cv2.imshow("binary", binary)
 
+            ret, labels = cv2.connectedComponents(binary)
+            blobs_raw = []
+            size = []
+            tuned_points = []
+            for label in range(1, ret):
+                coordinate = np.asarray(np.where(labels == label)).transpose()
+                size.append(coordinate.shape[0])
+                blobs_raw.append(coordinate)
+                tuned_y_ave = np.average(coordinate[:, 0])
+                tuned_x_ave = np.average(coordinate[:, 0])
+                tuned_points.append([tuned_y_ave, tuned_x_ave])
+
+            biggest_ind = np.argmax(np.array(size))
+            blob = blobs_raw[biggest_ind]
+            blob[:, 0] += y_min
+            blob[:, 1] += x_min
+
+            fblobs.append(blob)
+            tuned_binary[blob[:, 0], blob[:, 1]] = 1
+
+        cv2.imshow("local", tuned_binary *255)
+        #cv2.waitKey(0)
+
+        return tuned_binary, fblobs, tuned_points
 
 
     def quantify(self, save_path, video_name):
@@ -262,6 +296,8 @@ class BehaviorQuantify:
             #tracked_im = self.larva_tracker.dense_track(old_im, im)
             #larva_pointss.append(larva_points)
             larva_points, im_diff = self.larva_tracker2.track(previous, new_gray, 15, 0.5)
+            tracked_binary, tracked_blobs, larva_points = self.local_seg(new_gray, larva_points)
+            self.larva_tracker2.resampling_within_blobs(tracked_blobs)
             larva_pointss.append(larva_points)
 
             """
@@ -383,7 +419,7 @@ class BehaviorQuantify:
             #out4.release()
 
 if __name__ == '__main__':
-    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/OriUNet/models_rotate_contrast/UNet22000.pb")
+    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     base_path = "./Methods/Multi-fish_experiments/"
     date = ["20210219/"]
     capacity = ["4/"]

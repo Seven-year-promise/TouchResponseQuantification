@@ -583,6 +583,14 @@ class ParticleFilter:
                     left_particles.extend(new_particle)
             self.new_particles[n] = left_particles
 
+    def resampling_within_blobs(self, blobs):
+        self.new_particles.clear()
+        for bl in blobs:
+            resampled_particles = self.create_particles_within_blob(bl, N=self.particle_num)
+            #print(generated_particles)
+            self.new_particles.append(resampled_particles)
+
+
     def track(self, previous, new_gray, kernel_size, s_thre):
         old_gray = previous[-1]
         #cv2.imshow('old_gray', old_gray)
@@ -651,10 +659,10 @@ class ParticleFilter:
             all_similarities = left_particles[:, 2].sum()
             if all_similarities:
                 #print("with particles useful")
-                x_ave = (left_particles[:, 0] * left_particles[:, 2]).sum() / all_similarities
-                y_ave = (left_particles[:, 1] * left_particles[:, 2]).sum() / all_similarities
+                y_ave = (left_particles[:, 0] * left_particles[:, 2]).sum() / all_similarities
+                x_ave = (left_particles[:, 1] * left_particles[:, 2]).sum() / all_similarities
                 #print("x_ave", x_ave, all_similarities)
-                new_boxes0.append([x_ave, y_ave])
+                new_boxes0.append([y_ave, x_ave])
             else:
                 new_boxes0.append(box)
             flag_ind += 1
@@ -663,7 +671,7 @@ class ParticleFilter:
         self.new_boxes = new_boxes0
         #print(self.boxes0)
         s_thre = 0.3
-        self.resampling(s_thre, 7)
+        #self.resampling(s_thre, 7)
         #new_gray_particles = new_gray.copy()
         #new_gray_particles = draw_particles(new_gray_particles, self.particles)
 

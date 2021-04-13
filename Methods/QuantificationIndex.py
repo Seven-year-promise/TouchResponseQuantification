@@ -436,3 +436,50 @@ def Tracking(success,
         if touching_flag:
             not_moving = 1
         return None, None, None, None, None, not_moving
+
+class QuantificationIndex:
+    """
+    given needle points, larva points and larva patches,
+    compute the quantification indexes, latency time (t_l), C-Shape Radius Average (r_ca), Moving distance (d_m), response time (t_r)
+    importance time points: t1: touch apllied, t2: response begins, t3: response stops
+    """
+    def __init__(self, n_l_dis_thre, stop_thre):
+        self.needle_larva_dis_thre = n_l_dis_thre
+        self.stop_thre = stop_thre
+        self.needle_points = None
+        self.larva_points = None
+        self.larva_patches = None
+
+    def compute_d_m(self):
+        #TODO
+        pass
+
+    def compute_t1(self):
+        #TODO
+        pass
+
+    def compute_t2(self):
+        #TODO
+        pass
+
+    def compute_t3(self):
+        #TODO
+        pass
+
+    def compute_r_ca(self):
+        #TODO
+        pass
+
+    def get_indexes(self, needle_points, larva_points, larva_patches):
+        self.needle_points = needle_points
+        self.larva_points = larva_points
+        self.larva_patches = larva_patches
+        t1 = self.compute_t1()
+        t2 = self.compute_t2()
+        t3 = self.compute_t3()
+
+        t_l = t2 - t1
+        t_r = t3 - t2
+
+        r_ca = self.compute_r_ca()
+        d_m = self.compute_d_m()
