@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from Methods.RegionGrowing import Point, RegionGrow
+from Methods.QuantificationIndex import QuantificationIndex
 
 COLORS = [[133, 145, 220],
           [50, 145, 100],
@@ -138,7 +139,9 @@ class BehaviorQuantify:
         self.larva_tracker = LarvaTracker()
         self.larva_tracker2 = ParticleFilter(50)
 
-        self.rg = RegionGrow()
+        self.RG = RegionGrow()
+
+        self.QutifyIndex = QuantificationIndex(n_l_dis_thre=6, move_thre=1)
 
     def load_video(self, video):
         self.video = video
@@ -162,7 +165,8 @@ class BehaviorQuantify:
             print("please load the video first")
         else:
             self.unet_test.load_im(self.video[0])
-            needle_binary, _, larva_binary, larva_blobs = self.unet_test.predict(threshold=0.9, size=44)
+            needle_binary, _, larva_binary, larva_blobs = self.unet_test.predict(threshold=0.9, size=12)
+
             cv2.imwrite("tracking_saved/original_im.jpg", self.video[0][SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
             cv2.imwrite("tracking_saved/larva_binary.jpg", larva_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
             cv2.imwrite("tracking_saved/needle_binary.jpg", needle_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
@@ -190,13 +194,23 @@ class BehaviorQuantify:
 
         return im_well
 
-    def larva_touched(self, needle_point):
+    def larva_touched(self, needle_point, n_l_dis_thre):
+        """
+        decide which larva was touched
+        :param needle_point: the needle point of the last frame
+        :param n_l_dis_thre: the distance to decide that the larva is touched
+        :return: 0, 1, 2, 3: the larva in dex touched, -1: none of the larvae touched
+        """
         distances = []
         for c in self.larva_centers:
-            d = (c[0] - needle_point[0])**2 + (c[1] - needle_point[1])**2
+            d = math.sqrt((c[0] - needle_point[0])**2 + (c[1] - needle_point[1])**2)
             distances.append(d)
-
-        return np.argmin(np.array(distances))
+        touched_ind = np.argmin(np.array(distances))
+        print(distances)
+        if distances[touched_ind] < n_l_dis_thre:
+            return touched_ind
+        else:
+            return -1
 
     def compute_total_distances(self, all_points, ind):
         distance = 0
@@ -216,33 +230,43 @@ class BehaviorQuantify:
         :param frame: frame to generate the local area of the larva
         :param larva_points: the particles output from the tracking procedure
         :return:
+            tuned_binary: the optimized binary in original image size
+            larva_patches: the larva areas in local size
+            fblobs: the larva blobs coordinates in original image size
+            tuned_points: the optimized larva centers
         """
         # the fish area should be enlarged to 40 by 40
         fblobs = []
+        larva_patches = []
+        tuned_points = []
         tuned_binary = np.zeros(frame.shape, np.uint8)
         for l_p in larva_points:
             y_ave = int(l_p[0])
             x_ave = int(l_p[1])
-            x_min = x_ave - 20
-            x_max = x_ave + 20
-            y_min = y_ave - 20
-            y_max = y_ave + 20
 
-            larva_patch = frame[y_min:y_max, x_min:x_max]
-            #blur = cv2.medianBlur(larva_patch, 5)
-            #binary = self.rg.regionGrowApply(larva_patch, [Point(20, 20)], 10)
+            blur = cv2.medianBlur(frame, 5)
+            binary = self.RG.regionGrowLocalApply(blur,
+                                                  [Point(x_ave, y_ave)], # Point (x, y)
+                                                  diff_thre=40,
+                                                  binary_high_thre=240,
+                                                  binary_low_thre=50,
+                                                  size_thre=200)
             #blur = cv2.GaussianBlur(im, (3, 3), 0)
             #ret, th = cv2.threshold(larva_patch, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            ret, th = cv2.threshold(larva_patch, 220, 255, cv2.THRESH_BINARY)
-            binary = np.zeros(th.shape, np.uint8)
-            binary[np.where(th == 0)] = 1
-            binary[np.where(th == 255)] = 0
-            #cv2.imshow("binary", binary)
+
+            #ret, th = cv2.threshold(larva_patch, 220, 255, cv2.THRESH_BINARY)
+            #kernel = np.ones((3, 3), dtype=np.uint8)
+            #closing = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            #th = closing
+            #binary = np.zeros(th.shape, np.uint8)
+            #binary[np.where(th == 0)] = 1
+            #binary[np.where(th == 255)] = 0
+
 
             ret, labels = cv2.connectedComponents(binary)
             blobs_raw = []
             size = []
-            tuned_points = []
+
             for label in range(1, ret):
                 coordinate = np.asarray(np.where(labels == label)).transpose()
                 size.append(coordinate.shape[0])
@@ -253,16 +277,25 @@ class BehaviorQuantify:
 
             biggest_ind = np.argmax(np.array(size))
             blob = blobs_raw[biggest_ind]
-            blob[:, 0] += y_min
-            blob[:, 1] += x_min
+            # get the small singe larva patch
+            x_min = np.min(blob[:, 1])
+            y_min = np.min(blob[:, 0])
+            x_max = np.max(blob[:, 1])
+            y_max = np.max(blob[:, 0])
+            larva_patch = np.zeros(((y_max-y_min+1), (x_max-x_min+1)), np.uint8)
+            larva_patch[blob[:, 0] - y_min, blob[:, 1] - x_min] = 1
+            larva_patches.append(larva_patch)
+            #cv2.imshow("binary", larva_patch + 255)
+            #cv2.waitKey(0)
+            # remap the flob to the original size
 
             fblobs.append(blob)
             tuned_binary[blob[:, 0], blob[:, 1]] = 1
 
-        cv2.imshow("local", tuned_binary *255)
+        cv2.imshow("local", tuned_binary*255)
         #cv2.waitKey(0)
 
-        return tuned_binary, fblobs, tuned_points
+        return tuned_binary, larva_patches, fblobs, tuned_points
 
 
     def quantify(self, save_path, video_name):
@@ -281,6 +314,8 @@ class BehaviorQuantify:
         old_gray = self.preprocessing(self.video[0])
         needle_points = []
         larva_pointss = []
+        larva_patchess = []
+        larva_blobss = []
 
         id_im = 0
         previous = []
@@ -296,10 +331,11 @@ class BehaviorQuantify:
             #tracked_im = self.larva_tracker.dense_track(old_im, im)
             #larva_pointss.append(larva_points)
             larva_points, im_diff = self.larva_tracker2.track(previous, new_gray, 15, 0.5)
-            tracked_binary, tracked_blobs, larva_points = self.local_seg(new_gray, larva_points)
+            tracked_binary, tracked_patches, tracked_blobs, tracked_points = self.local_seg(new_gray, larva_points)
             self.larva_tracker2.resampling_within_blobs(tracked_blobs)
-            larva_pointss.append(larva_points)
-
+            larva_pointss.append(tracked_points)
+            larva_patchess.append(tracked_patches)
+            larva_blobss.append(tracked_blobs)
             """
             modify the larva area according to the rough tracking
             """
@@ -367,10 +403,23 @@ class BehaviorQuantify:
             new_video4.append(im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
             #print(larva_points[1])
 
+        larva_touched = self.larva_touched(needle_points[-1], 16)
+
+        # get the quantification indexes
+        if larva_touched < 0:
+            print("None touched")
+        else:
+            t_l, r_ca, t_r, d_m = self.QutifyIndex.get_indexes(larva_first_centers=self.larva_centers,
+                                                               needle_points=needle_points,
+                                                               larva_pointss=larva_pointss,
+                                                               larva_patchess=larva_patchess,
+                                                               larva_touched=larva_touched)
+
+            print(t_l, r_ca, t_r, d_m)
         #print(larva_pointss)
         if SAVE_VIDEO:
             # decide which larva is the one to touch
-            larva_touched = self.larva_touched(needle_points[-1])
+
             distances = []
             for count, im in enumerate(self.video[1:]):
                 show_n_points = needle_points[:count+1:20]
@@ -436,7 +485,7 @@ if __name__ == '__main__':
                         video_cnt += 1
                         print(this_path + f)
                         video_path = this_path + f
-                        video_path = "./Methods/Multi-fish_experiments/20210219/4/head/WT_152724_Speed25.avi"
+                        video_path = "./Methods/Multi-fish_experiments/20210219/4/body/WT_145124_Speed25.avi"
                         video = []
                         cap = cv2.VideoCapture(video_path)
                         success, frame = cap.read()

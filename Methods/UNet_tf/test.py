@@ -133,10 +133,11 @@ class UNetTestTF:
 
     def find_needle_point(self, needle_mask):
         """
-        :param needle_mask: the binary of the needle heat map: 0/1
+        :param needle_mask: the binary of the needle heat map: 0/1 or 0/255
         :return: the center of needle point: y, x or (h, w)
         """
-        masked = needle_mask*255
+        if np.max(needle_mask) < 255:
+            masked = needle_mask*255
         masked_inv = cv2.bitwise_not(masked)
         gray_masked = cv2.bitwise_and(self.ori_im_gray, self.ori_im_gray, mask = masked)
         gray_masked = gray_masked + masked_inv
