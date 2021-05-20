@@ -600,7 +600,9 @@ class ParticleFilter:
         bg = self.generate_bg(previous)
         diff_im = np.zeros_like(new_gray, dtype=uint8)
         difference = np.abs(bg - new_gray)
-        threshold = np.sum(np.sum(difference)) / (new_gray.shape[0] + new_gray.shape[1])
+
+
+        threshold = 10 #np.sum(np.sum(difference)) / (new_gray.shape[0] + new_gray.shape[1])
         diff_im[difference < threshold] = 0
         diff_im[difference > threshold] = 255
         diff_im = cv2.medianBlur(diff_im, 3)
@@ -613,6 +615,7 @@ class ParticleFilter:
 
         #print(self.difference_flags)
         flag_ind = 0
+        num_diffs = []
         for box, pars0, pars in zip(self.new_boxes, self.particles0, self.new_particles):
             left_particles = []
             if not self.difference_flags[flag_ind]:
@@ -621,7 +624,7 @@ class ParticleFilter:
 
                 self.difference_flags[flag_ind] = np.sum(difference_flag) > 0
                 #print("difference_flag", flag_ind, self.difference_flags[flag_ind])
-
+            num_diff = 0
             for x0, x in zip(pars0, pars):
                 p_h0 = int(x0[0])
                 p_w0 = int(x0[1])
@@ -643,16 +646,21 @@ class ParticleFilter:
                 if self.difference_flags[flag_ind] > 0:
                     #prob = similarity#*0.5 + diff_im[p_h, p_w] / 255.0 *0.5#cosine(old_gray[feature_ymin:feature_ymax, feature_xmin:feature_xmax], new_gray[feature_ymin:feature_ymax, feature_xmin:feature_xmax])
                     prob = diff_im[p_h, p_w] / 255.0
+
+
+
                     #prob = 1 - similarity
                 else:
                     #prob = similarity
                     prob = diff_im[p_h, p_w] / 255.0
 
+                if prob > 0: # means there is movement
+                    num_diff += 1
                 #if similarity < 0.5:
                 #print(similarity, prob, box)
                 #print(p_h, p_w, diff_im[p_h, p_w])
                 left_particles.append([p_h, p_w, prob])
-
+            num_diffs.append(num_diff)
             all_left_particles.append(left_particles)
 
             left_particles = np.array(left_particles)
@@ -671,12 +679,12 @@ class ParticleFilter:
         self.new_boxes = new_boxes0
         #print(self.boxes0)
         s_thre = 0.3
-        #self.resampling(s_thre, 7)
+        self.resampling(s_thre, 7)
         #new_gray_particles = new_gray.copy()
         #new_gray_particles = draw_particles(new_gray_particles, self.particles)
 
 
-        return new_boxes0, diff_im#, new_gray_particles
+        return new_boxes0, diff_im, num_diffs#, new_gray_particles
 
 
 def cosine(m1, m2):

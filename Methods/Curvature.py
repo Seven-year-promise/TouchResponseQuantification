@@ -67,6 +67,18 @@ class ComputeCurvature:
         ri = self.calc_r(*center)
         self.r = ri.mean()
 
+        return self.r  # Return the radius
+
+    def fit_curvature(self, xx, yy):
+        self.xx = xx
+        self.yy = yy
+        center_estimate = np.r_[np.mean(xx), np.mean(yy)]
+        center = optimize.leastsq(self.f, center_estimate, Dfun=self.df, col_deriv=True)[0]
+
+        self.xc, self.yc = center
+        ri = self.calc_r(*center)
+        self.r = ri.mean()
+
         return 1.0/self.r  # Return the radius
 
     def linear_regression(self, x, y):
@@ -137,7 +149,7 @@ class ComputeCurvature:
         cure_para, inlier_x, inlier_y = self.cur_fit(outed_xx, outed_yy, error_thre = 2.5)
         self.xx = inlier_x
         self.yy = inlier_y
-        return self.fit_radius(inlier_x, inlier_y)
+        return self.fit_curvature(inlier_x, inlier_y)
         #plt.show()
 
 

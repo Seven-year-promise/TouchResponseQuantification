@@ -3,6 +3,8 @@ from Methods.UNet_tf.util import *
 from Methods.Tracking import *
 import cv2
 import numpy as np
+import csv
+import pandas as pd
 from matplotlib import pyplot as plt
 from Methods.RegionGrowing import Point, RegionGrow
 from Methods.QuantificationIndex import QuantificationIndex
@@ -60,7 +62,7 @@ DRAW_FLOW_LINE = False
 DRAW_FLOW_POINT = False
 SAVE = False
 SAVE_VIDEO = False
-SHOW = True
+SHOW = False
 SAVE_X_MIN = 100
 SAVE_X_MAX = 380
 SAVE_Y_MIN = 100
@@ -141,7 +143,7 @@ class BehaviorQuantify:
 
         self.RG = RegionGrow()
 
-        self.QutifyIndex = QuantificationIndex(n_l_dis_thre=6, move_thre=1)
+        self.QutifyIndex = QuantificationIndex(n_l_dis_thre=10, move_thre=25)
 
     def load_video(self, video):
         self.video = video
@@ -239,7 +241,8 @@ class BehaviorQuantify:
         fblobs = []
         larva_patches = []
         tuned_points = []
-        tuned_binary = np.zeros(frame.shape, np.uint8)
+        tuned_binary = frame.copy() #np.zeros(frame.shape, dtype='uint8') #
+        tuned_binary[:, :] = 0
         for l_p in larva_points:
             y_ave = int(l_p[0])
             x_ave = int(l_p[1])
@@ -247,11 +250,13 @@ class BehaviorQuantify:
             blur = cv2.medianBlur(frame, 5)
             binary = self.RG.regionGrowLocalApply(blur,
                                                   [Point(x_ave, y_ave)], # Point (x, y)
-                                                  diff_thre=40,
-                                                  binary_high_thre=240,
+                                                  diff_thre=15,
+                                                  binary_high_thre=200,
                                                   binary_low_thre=50,
                                                   size_thre=200)
             #blur = cv2.GaussianBlur(im, (3, 3), 0)
+            #local_coors = np.asarray(np.where(binary == 1)).transpose()
+            #x_min =
             #ret, th = cv2.threshold(larva_patch, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
             #ret, th = cv2.threshold(larva_patch, 220, 255, cv2.THRESH_BINARY)
@@ -272,7 +277,7 @@ class BehaviorQuantify:
                 size.append(coordinate.shape[0])
                 blobs_raw.append(coordinate)
                 tuned_y_ave = np.average(coordinate[:, 0])
-                tuned_x_ave = np.average(coordinate[:, 0])
+                tuned_x_ave = np.average(coordinate[:, 1])
                 tuned_points.append([tuned_y_ave, tuned_x_ave])
 
             biggest_ind = np.argmax(np.array(size))
@@ -292,7 +297,7 @@ class BehaviorQuantify:
             fblobs.append(blob)
             tuned_binary[blob[:, 0], blob[:, 1]] = 1
 
-        cv2.imshow("local", tuned_binary*255)
+        #cv2.imshow("local", tuned_binary*255)
         #cv2.waitKey(0)
 
         return tuned_binary, larva_patches, fblobs, tuned_points
@@ -306,6 +311,7 @@ class BehaviorQuantify:
         new_video2 = []
         new_video3 = []
         new_video4 = []
+        new_video5 = []
         moving_positions = []
         radiuses = []
         response_begin_time = 0
@@ -316,6 +322,7 @@ class BehaviorQuantify:
         larva_pointss = []
         larva_patchess = []
         larva_blobss = []
+        num_diffss = []
 
         id_im = 0
         previous = []
@@ -330,12 +337,13 @@ class BehaviorQuantify:
             #larva_points = self.larva_tracker.optical_track(old_gray, new_gray)
             #tracked_im = self.larva_tracker.dense_track(old_im, im)
             #larva_pointss.append(larva_points)
-            larva_points, im_diff = self.larva_tracker2.track(previous, new_gray, 15, 0.5)
+            larva_points, im_diff, num_diffs = self.larva_tracker2.track(previous, new_gray, 15, 0.5)
             tracked_binary, tracked_patches, tracked_blobs, tracked_points = self.local_seg(new_gray, larva_points)
-            self.larva_tracker2.resampling_within_blobs(tracked_blobs)
+            #self.larva_tracker2.resampling_within_blobs(tracked_blobs)
             larva_pointss.append(tracked_points)
             larva_patchess.append(tracked_patches)
             larva_blobss.append(tracked_blobs)
+            num_diffss.append(num_diffs)
             """
             modify the larva area according to the rough tracking
             """
@@ -391,6 +399,7 @@ class BehaviorQuantify:
                 cv2.imwrite(save_path + "/" + video_name + "/particles_difference" + str(id_im) + ".jpg", im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 print("saving pictures")
             if SHOW:
+                cv2.imshow("local seg", tracked_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
                 cv2.imshow("tracked", tracked_im2[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imshow('new_gray', im_with_pars[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imshow('diff_im', im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
@@ -401,21 +410,12 @@ class BehaviorQuantify:
             #print(str(id_im))
             new_video3.append(im_with_pars[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
             new_video4.append(im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+            new_video5.append(tracked_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
             #print(larva_points[1])
 
-        larva_touched = self.larva_touched(needle_points[-1], 16)
+        larva_touched = self.larva_touched(needle_points[-1], 10)
 
-        # get the quantification indexes
-        if larva_touched < 0:
-            print("None touched")
-        else:
-            t_l, r_ca, t_r, d_m = self.QutifyIndex.get_indexes(larva_first_centers=self.larva_centers,
-                                                               needle_points=needle_points,
-                                                               larva_pointss=larva_pointss,
-                                                               larva_patchess=larva_patchess,
-                                                               larva_touched=larva_touched)
 
-            print(t_l, r_ca, t_r, d_m)
         #print(larva_pointss)
         if SAVE_VIDEO:
             # decide which larva is the one to touch
@@ -444,15 +444,19 @@ class BehaviorQuantify:
                     distances.append(self.compute_total_distances(points_for_distance, larva_touched))
 
             fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+            mp4 = cv2.VideoWriter_fourcc(*'mp4v')
             #out = cv2.VideoWriter(save_path + video_name + 'line.avi', fourcc, 20.0, (SAVE_Y_MAX-SAVE_Y_MIN+1, SAVE_X_MAX-SAVE_X_MIN+1))
             out2 = cv2.VideoWriter(save_path + video_name + 'point.avi', fourcc, 20.0, (SAVE_Y_MAX-SAVE_Y_MIN+1, SAVE_X_MAX-SAVE_X_MIN+1))
             out3 = cv2.VideoWriter(save_path + video_name + 'particles.avi', fourcc, 20.0, (SAVE_Y_MAX-SAVE_Y_MIN+1, SAVE_X_MAX-SAVE_X_MIN+1))
             #out4 = cv2.VideoWriter('tracking_saved/output4.avi', fourcc, 20.0, (SAVE_Y_MAX-SAVE_Y_MIN+1, SAVE_X_MAX-SAVE_X_MIN+1))
-            for im1, im2, im3, im4 in zip(new_video[::10], new_video2[::10], new_video3[::10], new_video4[::10]):
+            out5 = cv2.VideoWriter(save_path + video_name + 'rg.mp4', mp4, 20.0,
+                                   (SAVE_Y_MAX - SAVE_Y_MIN + 1, SAVE_X_MAX - SAVE_X_MIN + 1), False)
+            for im1, im2, im3, im4, im5 in zip(new_video[::10], new_video2[::10], new_video3[::10], new_video4[::10], new_video5[::10]):
                 #out.write(im1)
                 out2.write(im2)
                 out3.write(im3)
                 #out4.write(im4)
+                out5.write(im5)
 
             t = np.arange(len(distances))
             plt.plot(t, distances)
@@ -466,26 +470,58 @@ class BehaviorQuantify:
             out2.release()
             out3.release()
             #out4.release()
+            out5.release()
+
+        # save immediate data
+
+        num_diffss_df = pd.DataFrame(num_diffss)
+
+        num_diffss_df.to_csv(save_path + "num_diffss.csv", index=False, header=False)
+
+        # get the quantification indexes
+
+        if larva_touched < 0:
+            print("None touched")
+            return -2, -2, -2, -2, -2 #None, None, None, None
+        else:
+            t_l, c_m, cpt, t_r, d_m = self.QutifyIndex.get_indexes(larva_first_centers=self.larva_centers,
+                                                               needle_points=needle_points,
+                                                               larva_pointss=larva_pointss,
+                                                               larva_patchess=larva_patchess,
+                                                               num_diffss=num_diffss,
+                                                               larva_touched=larva_touched)
+
+            print(t_l, c_m, cpt, t_r, d_m)
+            return t_l, c_m, cpt, t_r, d_m
 
 if __name__ == '__main__':
     behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     base_path = "./Methods/Multi-fish_experiments/"
-    date = ["20210219/"]
-    capacity = ["4/"]
-    touching_part = ["head/", "body/", "tail/"]
+    date = ["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
+    capacity = ["Control/", "Dia/", "DMSO/", "Iso/"]
+    touching_part = [""]
     save_path = "./tracking_saved/"
-    for d in [date[-1]]:
+    quantification_result_path = "./QuantificationResults/"
+    for d in date[:-1]:
         for c in capacity:
             for p in touching_part:
                 this_path = base_path + d + c + p
-                file_names = os.listdir(this_path)
+                file_names = [f for f in os.listdir(this_path) if f.endswith('.avi')]
+                print(file_names)
                 video_cnt = 0
+                result_path = quantification_result_path + d + c + p
+                if not os.path.exists(result_path):
+                    os.makedirs(result_path)
+                result_csv_file = result_path + "quantification.csv"
+                result_csv_file = open(result_csv_file, "w", newline="")
+                result_csv_writer = csv.writer(result_csv_file, delimiter=",")
+                result_csv_writer.writerow(["video_name", "t_l", "c_m", "cpt", "t_r", "d_m"])
                 for f in file_names:
                     if f[-3:] == "avi":
                         video_cnt += 1
-                        print(this_path + f)
+                        print("NO.", video_cnt, this_path + f)
                         video_path = this_path + f
-                        video_path = "./Methods/Multi-fish_experiments/20210219/4/body/WT_145124_Speed25.avi"
+                        #video_path = "./Methods/Multi-fish_experiments/20210219/4/body/WT_145124_Speed25.avi"
                         video = []
                         cap = cv2.VideoCapture(video_path)
                         success, frame = cap.read()
@@ -493,11 +529,14 @@ if __name__ == '__main__':
                             video.append(frame)
                             success, frame = cap.read()
                         cap.release()
+
                         behav_quantify.load_video(video)
                         behav_quantify.quantification_init()
-                        behav_quantify.quantify(save_path = save_path+d + c + p, video_name=f)
+                        t_l, c_m, cpt, t_r, d_m = behav_quantify.quantify(save_path = save_path+d + c + p, video_name=f)
+                        result_csv_writer.writerow([f, t_l, c_m, cpt, t_r, d_m])
                         #cv2.waitKey(0)
                         #larva_tracking(video[3000:4000], model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
-                    #if video_cnt > 0:
-                    #    break
+                    #if video_cnt > 3:
+                        #break
+                result_csv_file.close()
     cv2.destroyAllWindows()
