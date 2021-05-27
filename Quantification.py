@@ -60,7 +60,7 @@ COLORS = [[133, 145, 220],
 
 DRAW_FLOW_LINE = False
 DRAW_FLOW_POINT = False
-SAVE = False
+SAVE = True
 SAVE_VIDEO = False
 SHOW = False
 SAVE_X_MIN = 100
@@ -393,10 +393,13 @@ class BehaviorQuantify:
             if SAVE:
                 if not os.path.exists(save_path + "/" + video_name):
                     os.makedirs(save_path + "/" + video_name)
+                cv2.imwrite(save_path + "/" + video_name + "/ori" + str(id_im) + ".jpg", im[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imwrite(save_path + "/" + video_name + "/particles_line" + str(id_im) + ".jpg", tracked_im[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imwrite(save_path + "/" + video_name + "/particles_point" + str(id_im) + ".jpg", tracked_im2[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imwrite(save_path + "/" + video_name + "/particles_ori" + str(id_im) + ".jpg", im_with_pars[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 cv2.imwrite(save_path + "/" + video_name + "/particles_difference" + str(id_im) + ".jpg", im_diff[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
+                local_bianary = tracked_binary*255
+                cv2.imwrite(save_path + "/" + video_name + "/local_seg" + str(id_im) + ".jpg", local_bianary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
                 print("saving pictures")
             if SHOW:
                 cv2.imshow("local seg", tracked_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
@@ -474,9 +477,9 @@ class BehaviorQuantify:
 
         # save immediate data
 
-        num_diffss_df = pd.DataFrame(num_diffss)
+        #num_diffss_df = pd.DataFrame(num_diffss)
 
-        num_diffss_df.to_csv(save_path + "num_diffss.csv", index=False, header=False)
+        #num_diffss_df.to_csv(save_path + "num_diffss.csv", index=False, header=False)
 
         # get the quantification indexes
 
@@ -497,18 +500,20 @@ class BehaviorQuantify:
 if __name__ == '__main__':
     behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     base_path = "./Methods/Multi-fish_experiments/"
-    date = ["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
-    capacity = ["Control/", "Dia/", "DMSO/", "Iso/"]
+    date = ["20210522-4compounds/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
+    capacity = ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
     touching_part = [""]
     save_path = "./tracking_saved/"
     quantification_result_path = "./QuantificationResults/"
-    for d in date[:-1]:
+    for d in date:
         for c in capacity:
             for p in touching_part:
                 this_path = base_path + d + c + p
                 file_names = [f for f in os.listdir(this_path) if f.endswith('.avi')]
                 print(file_names)
                 video_cnt = 0
+                """
+                # for saving the quantification
                 result_path = quantification_result_path + d + c + p
                 if not os.path.exists(result_path):
                     os.makedirs(result_path)
@@ -516,12 +521,14 @@ if __name__ == '__main__':
                 result_csv_file = open(result_csv_file, "w", newline="")
                 result_csv_writer = csv.writer(result_csv_file, delimiter=",")
                 result_csv_writer.writerow(["video_name", "t_l", "c_m", "cpt", "t_r", "d_m"])
+                """
                 for f in file_names:
                     if f[-3:] == "avi":
                         video_cnt += 1
                         print("NO.", video_cnt, this_path + f)
                         video_path = this_path + f
-                        #video_path = "./Methods/Multi-fish_experiments/20210219/4/body/WT_145124_Speed25.avi"
+                        f = "WT_114643_Speed25.avi"
+                        video_path = "./Methods/Multi-fish_experiments/20210522-4compounds/Iso/WT_114643_Speed25.avi"
                         video = []
                         cap = cv2.VideoCapture(video_path)
                         success, frame = cap.read()
@@ -533,10 +540,16 @@ if __name__ == '__main__':
                         behav_quantify.load_video(video)
                         behav_quantify.quantification_init()
                         t_l, c_m, cpt, t_r, d_m = behav_quantify.quantify(save_path = save_path+d + c + p, video_name=f)
+                        '''
+                        # for saving the quantification
                         result_csv_writer.writerow([f, t_l, c_m, cpt, t_r, d_m])
+                        '''
                         #cv2.waitKey(0)
                         #larva_tracking(video[3000:4000], model_path="./Methods/UNet_tf/LightCNN/models_rotate_contrast/UNet60000.pb")
-                    #if video_cnt > 3:
-                        #break
+                    if video_cnt > 0:
+                        break
+                """
+                # for saving the quantification
                 result_csv_file.close()
+                """
     cv2.destroyAllWindows()
