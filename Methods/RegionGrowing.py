@@ -58,7 +58,23 @@ class RegionGrow:
         seedMark = cv2.bitwise_not(seedMark)
         return seedMark
 
+    def serach_init_point(self, img, x, y, High_thre, Low_thre):
+        im_patch = img[(y-10):(y+10), (x-10):(x+10)]
+        #cv2.imshow("pa5tch", im_patch)
+        #cv2.waitKey(1)
+        ind = np.unravel_index(np.argmin(im_patch, axis=None), im_patch.shape)
+        #num = potential_cors[0].shape[0]
+        #ind = np.array(ind)
+        #print(ind)
+        #print("--------------")
+        new_y = y - 10 + ind[0]
+        new_x = x - 10 + ind[1]
+
+        return [Point(new_x, new_y)]
+
     def regionGrowLocalApply(self, img, seeds, diff_thre, binary_high_thre, binary_low_thre, size_thre, p=1):
+        if img[seeds[0].y, seeds[0].x] > binary_high_thre or img[seeds[0].y, seeds[0].x] < binary_low_thre:
+            seeds = self.serach_init_point(img, seeds[0].x, seeds[0].y, binary_high_thre, binary_low_thre)
         height, width = img.shape
         seedMark = np.zeros(img.shape, dtype = np.uint8)
         seedList = []

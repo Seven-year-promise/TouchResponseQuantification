@@ -62,6 +62,68 @@ def well_detection(im, gray, threshold = 50):
 
     return True, (well_centerx, well_centery, well_radius), im_closing_inv
 
+def well_detection_strong(im, gray, threshold = 50):
+    """
+    only difference for the kernel = np.ones((20, 20), dtype=np.uint8) to delete more dark edge
+    """
+    # gray = cv2.medianBlur(gray, 5)
+    rows = gray.shape[0]
+    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 5,
+                               param1=240, param2=50,
+                               minRadius=95, maxRadius=105)
+    #print(circles)
+    """
+    muted when training
+    if circles is not None:
+        circles_int = np.uint16(np.around(circles))
+        for i in circles_int[0, :]:
+            center = (i[0], i[1])
+            # circle center
+            cv2.circle(gray, center, 1, (0, 255, 0), 3)
+            # circle outline
+            radius = i[2]
+            cv2.circle(gray, center, radius, (0, 255, 0), 3)
+    """
+    #cv2.imshow("detected circles", gray)
+    #cv2.waitKey(1000)
+    if circles is not None:
+        well_centerx = np.uint16(np.round(np.average(circles[0, :, 0])))
+        well_centery = np.uint16(np.round(np.average(circles[0, :, 1])))
+        well_radius = 115 #np.uint16(np.round(np.average(circles[0, :, 2])))
+        #return True, (well_centerx, well_centery, 110)
+
+
+    else:
+        well_centerx = 240
+        well_centery = 240
+        well_radius = 115
+        #return False, (240, 240, 110)
+
+    # first rough mask for well detection
+    mask = np.zeros(gray.shape[:2], dtype="uint8")
+    cv2.circle(mask, (well_centerx, well_centery), well_radius, 255, -1)
+
+    gray_masked = cv2.bitwise_and(gray, gray, mask=mask)
+
+    # second fine-tuned mask
+    ret, th = cv2.threshold(gray_masked, threshold, 255, cv2.THRESH_BINARY)
+    kernel = np.ones((50, 50), dtype=np.uint8)
+    closing = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
+    im_closing = cv2.bitwise_and(im, im, mask=closing)
+
+    white_indexes = np.where(closing == 255)
+    well_centery = int(np.round(np.average(white_indexes[0])))
+    well_centerx = int(np.round(np.average(white_indexes[1])))
+    # third fine-tuned mask for background white
+    closing_inv = cv2.bitwise_not(closing)
+    closing_inv = np.array((closing_inv, closing_inv, closing_inv)).transpose(1, 2, 0)
+    im_closing_inv = closing_inv + im_closing
+
+    #cv2.circle(gray, (well_centerx, well_centery), 1, (0, 255, 0), 5)
+    #cv2.imshow("detected circles", im_closing_inv)
+    #cv2.waitKey(1000)
+
+    return True, (well_centerx, well_centery, well_radius), im_closing_inv
 
 # Weights
 def new_weights(shape, stddev):
