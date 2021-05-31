@@ -227,7 +227,50 @@ def get_iou(blobA, blobB, ori_shape):
 
     return AB / (A + B - AB)
 
-def recall_false_ratio(eval_segm, gt_segm, threshold, larva_num = 5):
+def recall_false_ratio(eval_segm, gt_segm, threshold, gt_num, gt_blobs):
+    '''
+    recall_ratio: TP / (TP + TN)
+    false_ratio: FP / (TP + FP)
+    correct_ratio: CP / (TP + FP)
+    '''
+
+    check_size(eval_segm, gt_segm)
+
+    eval_ret, eval_labels = cv2.connectedComponents(eval_segm)
+    #cv2.imshow("label", np.array(eval_labels*(255/eval_ret), np.uint8))
+
+    eval_blobs = get_blobs(eval_ret, eval_labels)
+
+
+    eval_num = len(eval_blobs)
+
+    #print("BEGIN", gt_ret, eval_ret)
+    eval_found_flag = np.zeros(eval_num, np.uint8)
+    gt_found_flag = np.zeros(gt_num, np.uint8)
+
+    for g_n in range(gt_num):
+        gt_blob = gt_blobs[g_n]
+        for e_n in range(eval_num):
+            eval_blob = eval_blobs[e_n]
+            iou = get_iou(gt_blob, eval_blob, eval_segm.shape)
+            #print("iou", iou)
+            if iou > threshold:
+                gt_found_flag[g_n] = 1
+                eval_found_flag[e_n] = 1
+            #print(gt_found_flag)
+
+    #print("END FOR ONE")
+    TP = np.sum(gt_found_flag)
+    TN = gt_num- TP
+    FP = eval_num - np.sum(eval_found_flag)
+    CP = np.sum(eval_found_flag)
+
+    recall_ratio = TP / (gt_num)
+    false_ratio = FP / (eval_num)
+    correct_ratio = CP / (eval_num)
+    return recall_ratio, false_ratio, correct_ratio
+
+def recall_false_ratio_by_num(eval_segm, gt_segm, threshold, larva_num = 5):
     '''
     recall_ratio: TP / (TP + TN)
     false_ratio: FP / (TP + FP)
@@ -270,10 +313,11 @@ def recall_false_ratio(eval_segm, gt_segm, threshold, larva_num = 5):
         CP = np.sum(eval_found_flag)
 
         recall_ratio = TP / (gt_num)
-        false_ratio = CP / (eval_num)
-        return recall_ratio, false_ratio
+        false_ratio = FP / (eval_num)
+        correct_ratio = CP / (eval_num)
+        return recall_ratio, false_ratio, correct_ratio
     else:
-        return None, None
+        return None, None, None
 
 def test_binarization(im_anno_list):
     ave_acc = 0
@@ -654,9 +698,10 @@ def UNet_detailed_recall_false_ratio(im_anno_list, threshold):
            ave_fish_recall_ratio / num_fish, \
            ave_fish_false_ratio / num_fish
 
+"""
 def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
     ave_fish_recall_ratio = 0
-    ave_fish_false_ratio = 0
+    ave_fish_correct_ratio = 0
     num_fish = 0
     num_im = len(im_anno_list)
     time_cnt = time.time()
@@ -666,13 +711,13 @@ def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=44)
+        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=12)
 
         if len(np.where(anno_fish == 1)[0]) > 0:
-            fish_recall_ratio, fish_false_ratio = recall_false_ratio(fish_binary, anno_fish, threshold, larva_num=larva_num)
+            fish_recall_ratio, _, fish_correct_ratio = recall_false_ratio(fish_binary, anno_fish, threshold, gt_numt)
             if fish_recall_ratio is not None:
                 ave_fish_recall_ratio += fish_recall_ratio
-                ave_fish_false_ratio += fish_false_ratio
+                ave_fish_correct_ratio += fish_correct_ratio
 
                 num_fish += 1
         # cv2.imshow("binary", binary*255)
@@ -681,7 +726,143 @@ def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
         # cv2.waitKey(0)
 
     return ave_fish_recall_ratio / num_fish, \
-           ave_fish_false_ratio / num_fish
+           ave_fish_correct_ratio / num_fish
+"""
+
+def test_Unet_larva_recall_false_ratio_by_num(im_anno_list, thre_steps = 100, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
+    unet_test.model.load_graph_frozen(
+        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+
+    threshold = np.arange(thre_steps)/thre_steps
+    markers = [".", "s", "*", "h"]
+    labels = ["2 larvae", "3 larvae", "4 larvae", "5 larvae"]
+    all_recall_ratios = []
+    all_correct_ratios = []
+    for l_n in range(2, 6):
+        recall_ratios_num = [] # for each number of larvae
+        correct_ratios_num = []
+        larva_recall_ratio_path = save_path + "larva_recall_ratio" + str(l_n) + ".csv"
+        larva_correct_ratio_path = save_path + "larva_correct_ratio" + str(l_n) + ".csv"
+        larva_recall_ratio_csv_file = open(larva_recall_ratio_path, "w", newline="")
+        larva_recall_ratio_csv_writer = csv.writer(larva_recall_ratio_csv_file, delimiter=",")
+        larva_correct_ratio_csv_file = open(larva_correct_ratio_path, "w", newline="")
+        larva_correct_ratio_csv_writer = csv.writer(larva_correct_ratio_csv_file, delimiter=",")
+        larva_recall_ratio_csv_writer.writerow(["threshold"] + threshold.tolist())
+        larva_correct_ratio_csv_writer.writerow(["threshold"] + threshold.tolist())
+        i = 0
+        for im_anno in im_anno_list:
+            im, _, anno_fish = im_anno
+
+            gt_ret, gt_labels = cv2.connectedComponents(anno_fish)
+            gt_blobs = get_blobs(gt_ret, gt_labels)
+            gt_num = len(gt_blobs)
+            if gt_num == l_n:
+                unet_test.load_im(im)
+                _, _, fish_binary, _, _ = unet_test.get_keypoint(threshold=0.9, size_fish=12)
+
+                if len(np.where(anno_fish == 1)[0]) > 0:
+                    recall_ratios_thre = []  # for each threshold with one image
+                    correct_ratios_thre = []
+                    for t in threshold:
+                        fish_recall_ratio, _, fish_correct_ratio = recall_false_ratio(fish_binary, anno_fish, t,
+                                                                                      gt_num, gt_blobs)
+                        if fish_recall_ratio is not None:
+                            recall_ratios_thre.append(fish_recall_ratio)
+                            correct_ratios_thre.append(fish_correct_ratio)
+                        else:
+                            recall_ratios_thre.append(-1)
+                            correct_ratios_thre.append(-1)
+                    recall_ratios_num.append(recall_ratios_thre)
+                    correct_ratios_num.append(correct_ratios_thre)
+
+                    larva_recall_ratio_csv_writer.writerow([i] + recall_ratios_thre)
+                    larva_correct_ratio_csv_writer.writerow([i] + correct_ratios_thre)
+            i += 1
+        larva_recall_ratio_csv_file.close()
+        larva_correct_ratio_csv_file.close()
+        all_recall_ratios.append(recall_ratios_num)
+        all_recall_ratios.append(correct_ratios_num)
+
+    """
+    for (r_rs, marker, label) in zip(all_recall_ratios, markers, labels):
+        plt.plot(threshold, r_rs, marker = marker, label = label)
+
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Recall Ratio")
+    plt.title("Recall ratio with different numbers of larvae in the well")
+    plt.show()
+
+    for (f_rs, marker, label) in zip(all_false_ratios, markers, labels):
+        plt.plot(threshold, f_rs, marker = marker, label = label)
+
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Correct Detection Ratio")
+    plt.title("Correct detection ratio with different numbers of larvae in the well")
+    plt.show()
+    """
+
+def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
+    threshold = np.arange(thre_steps)/thre_steps
+    b_recall_ratios = []
+    b_false_ratios = []
+    O_recall_ratios = []
+    O_false_ratios = []
+    L_recall_ratios = []
+    L_false_ratios = []
+    R_recall_ratios = []
+    R_false_ratios = []
+    U_recall_ratios = []
+    U_false_ratios = []
+    for t in threshold:
+        print("for threshold:", t)
+        r, f = binarization_recall_false_ratio(im_anno_list, t)
+        b_recall_ratios.append(r)
+        b_false_ratios.append(f)
+        print("binarization", r, f)
+
+        r, f = Otsu_recall_false_ratio(im_anno_list, t)
+        O_recall_ratios.append(r)
+        O_false_ratios.append(f)
+        print("Otsu", r, f)
+
+        r, f = LRB_recall_false_ratio(im_anno_list, t)
+        L_recall_ratios.append(r)
+        L_false_ratios.append(f)
+        print("LRB", r, f)
+
+        r, f = RG_recall_false_ratio(im_anno_list, t)
+        R_recall_ratios.append(r)
+        R_false_ratios.append(f)
+        print(r, f)
+
+        r, f = UNet_recall_false_ratio(im_anno_list, t)
+        U_recall_ratios.append(r)
+        U_false_ratios.append(f)
+        print("UNet", r, f)
+
+    fig = plt.figure()
+    plt.plot(threshold, b_recall_ratios, marker = ".", label = "Thresholding")
+    plt.plot(threshold, O_recall_ratios, marker = "s", label = "Otsu Thresholding")
+    plt.plot(threshold, L_recall_ratios, marker = "*", label = "linear regression")
+    plt.plot(threshold, R_recall_ratios, marker = "h", label = "Region growing")
+    plt.plot(threshold, U_recall_ratios, marker = "x", label = "U Net")
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Recall Ratio")
+    plt.title("Comparison of recall ratio when Threshold of IOU changes")
+    plt.show()
+    plt.plot(threshold, b_false_ratios, marker = ".", label="Thresholding")
+    plt.plot(threshold, O_false_ratios, marker = "s", label="Otsu Thresholding")
+    plt.plot(threshold, L_false_ratios, marker = "*", label="linear regression")
+    plt.plot(threshold, R_false_ratios, marker = "h", label="Region growing")
+    plt.plot(threshold, U_false_ratios, marker = "x", label="U Net")
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Correct Detection Ratio")
+    plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
+    plt.show()
 
 def test_UNet_select_size_thre(im_anno_list, save = False):
     unet_test.model.load_graph_frozen(model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
@@ -772,103 +953,6 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
 
     print("time per frame", time_used / num_im)
     """
-
-def test_Unet_split_recall_false_ratio(im_anno_list, thre_steps = 100):
-    threshold = np.arange(thre_steps)/thre_steps
-    markers = [".", "s", "*", "h"]
-    labels = ["2 larvae", "3 larvae", "4 larvae", "5 larvae"]
-    all_recall_ratios = []
-    all_false_ratios = []
-    for l_n in range(2, 6):
-        recall_ratios = []
-        false_ratios = []
-        for t in threshold:
-            r, f = UNet_larva_recall_false_ratio(im_anno_list, t, l_n)
-            recall_ratios.append(r)
-            false_ratios.append(f)
-            print("UNet", r, f)
-        all_recall_ratios.append(recall_ratios)
-        all_false_ratios.append(false_ratios)
-
-
-    for (r_rs, marker, label) in zip(all_recall_ratios, markers, labels):
-        plt.plot(threshold, r_rs, marker = marker, label = label)
-
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Recall Ratio")
-    plt.title("Recall ratio with different numbers of larvae in the well")
-    plt.show()
-
-    for (f_rs, marker, label) in zip(all_false_ratios, markers, labels):
-        plt.plot(threshold, f_rs, marker = marker, label = label)
-
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Correct Detection Ratio")
-    plt.title("Correct detection ratio with different numbers of larvae in the well")
-    plt.show()
-
-def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
-    threshold = np.arange(thre_steps)/thre_steps
-    b_recall_ratios = []
-    b_false_ratios = []
-    O_recall_ratios = []
-    O_false_ratios = []
-    L_recall_ratios = []
-    L_false_ratios = []
-    R_recall_ratios = []
-    R_false_ratios = []
-    U_recall_ratios = []
-    U_false_ratios = []
-    for t in threshold:
-        print("for threshold:", t)
-        r, f = binarization_recall_false_ratio(im_anno_list, t)
-        b_recall_ratios.append(r)
-        b_false_ratios.append(f)
-        print("binarization", r, f)
-
-        r, f = Otsu_recall_false_ratio(im_anno_list, t)
-        O_recall_ratios.append(r)
-        O_false_ratios.append(f)
-        print("Otsu", r, f)
-
-        r, f = LRB_recall_false_ratio(im_anno_list, t)
-        L_recall_ratios.append(r)
-        L_false_ratios.append(f)
-        print("LRB", r, f)
-
-        r, f = RG_recall_false_ratio(im_anno_list, t)
-        R_recall_ratios.append(r)
-        R_false_ratios.append(f)
-        print(r, f)
-
-        r, f = UNet_recall_false_ratio(im_anno_list, t)
-        U_recall_ratios.append(r)
-        U_false_ratios.append(f)
-        print("UNet", r, f)
-
-    fig = plt.figure()
-    plt.plot(threshold, b_recall_ratios, marker = ".", label = "Thresholding")
-    plt.plot(threshold, O_recall_ratios, marker = "s", label = "Otsu Thresholding")
-    plt.plot(threshold, L_recall_ratios, marker = "*", label = "linear regression")
-    plt.plot(threshold, R_recall_ratios, marker = "h", label = "Region growing")
-    plt.plot(threshold, U_recall_ratios, marker = "x", label = "U Net")
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Recall Ratio")
-    plt.title("Comparison of recall ratio when Threshold of IOU changes")
-    plt.show()
-    plt.plot(threshold, b_false_ratios, marker = ".", label="Thresholding")
-    plt.plot(threshold, O_false_ratios, marker = "s", label="Otsu Thresholding")
-    plt.plot(threshold, L_false_ratios, marker = "*", label="linear regression")
-    plt.plot(threshold, R_false_ratios, marker = "h", label="Region growing")
-    plt.plot(threshold, U_false_ratios, marker = "x", label="U Net")
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Correct Detection Ratio")
-    plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
-    plt.show()
 
 def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
     """
@@ -1062,7 +1146,8 @@ if __name__ == '__main__':
     #(im_anno_list)
     #test_UNet(im_anno_list)
     #test_UNet_detailed(im_anno_list, save=True)
-    test_UNet_select_size_thre(im_anno_list)
+    #test_UNet_select_size_thre(im_anno_list)
+    test_Unet_larva_recall_false_ratio_by_num(im_anno_list, 100)
     #test_all_recall_false_ratio(im_anno_list, 20)
     #test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
     #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")

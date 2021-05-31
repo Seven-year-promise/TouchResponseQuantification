@@ -269,6 +269,7 @@ def recall_false_ratio(eval_segm, gt_segm, threshold, larva_num = 5):
     else:
         return None, None
 
+
 def dice_loss(pred, target, smooth=1.):
     intersection = np.logical_and(pred, target)
     return 1- (2 * intersection.sum() + smooth)/ (pred.sum() + target.sum() + smooth)
