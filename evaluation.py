@@ -318,7 +318,11 @@ def recall_false_ratio_by_num(eval_segm, gt_segm, threshold, larva_num = 5):
         return recall_ratio, false_ratio, correct_ratio
     else:
         return None, None, None
-
+"""
+-------------------------------------
+test PC JI and recall correct ratio for Binarization, Otsu, LRB, RG, U-Net
+-------------------------------------
+"""
 def test_binarization(im_anno_list):
     ave_acc = 0
     ave_iu = 0
@@ -349,13 +353,21 @@ def test_binarization(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def binarization_recall_false_ratio(im_anno_list, threshold):
-
-    ave_recall_ratio = 0
-    ave_false_ratio = 0
+def binarization_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/Binarization/"):
     num = len(im_anno_list)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
-    for im_anno in im_anno_list:
+    recall_ratio_path = save_path + "recall_ratio" + ".csv"
+    correct_ratio_path = save_path + "correct_ratio" + ".csv"
+    recall_ratio_csv_file = open(recall_ratio_path, "w", newline="")
+    recall_ratio_csv_writer = csv.writer(recall_ratio_csv_file, delimiter=",")
+    correct_ratio_csv_file = open(correct_ratio_path, "w", newline="")
+    correct_ratio_csv_writer = csv.writer(correct_ratio_csv_file, delimiter=",")
+    recall_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+    correct_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+
+    for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
@@ -366,17 +378,32 @@ def binarization_recall_false_ratio(im_anno_list, threshold):
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
+
+        gt_ret, gt_labels = cv2.connectedComponents(anno)
+        gt_blobs = get_blobs(gt_ret, gt_labels)
+        gt_num = len(gt_blobs)
+
+
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
         #cv2.imshow("anno", anno*255)
         #cv2.waitKey(0)
+        recall_ratio_list = []
+        recall_ratio_list.append(i)
+        correct_ratio_list = []
+        correct_ratio_list.append(i)
+        for t in thresholds:
+            recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                          gt_num, gt_blobs)
+            recall_ratio_list.append(recall_ratio)
+            correct_ratio_list.append(correct_ratio)
+        recall_ratio_csv_writer.writerow(recall_ratio_list)
+        correct_ratio_csv_writer.writerow(correct_ratio_list)
 
-        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
-        ave_recall_ratio += recall_ratio
-        ave_false_ratio += false_ratio
+    recall_ratio_csv_file.close()
+    correct_ratio_csv_file.close()
+    print("binarization recall and correct ratio, finished")
 
-
-    return ave_recall_ratio/num, ave_false_ratio/num
 
 def test_Otsu(im_anno_list):
     ave_acc = 0
@@ -408,12 +435,21 @@ def test_Otsu(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def Otsu_recall_false_ratio(im_anno_list, threshold):
-    ave_recall_ratio = 0
-    ave_false_ratio = 0
+def Otsu_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/Otsu/"):
     num = len(im_anno_list)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
-    for im_anno in im_anno_list:
+    recall_ratio_path = save_path + "recall_ratio" + ".csv"
+    correct_ratio_path = save_path + "correct_ratio" + ".csv"
+    recall_ratio_csv_file = open(recall_ratio_path, "w", newline="")
+    recall_ratio_csv_writer = csv.writer(recall_ratio_csv_file, delimiter=",")
+    correct_ratio_csv_file = open(correct_ratio_path, "w", newline="")
+    correct_ratio_csv_writer = csv.writer(correct_ratio_csv_file, delimiter=",")
+    recall_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+    correct_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+
+    for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
@@ -425,15 +461,31 @@ def Otsu_recall_false_ratio(im_anno_list, threshold):
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
+
+        gt_ret, gt_labels = cv2.connectedComponents(anno)
+        gt_blobs = get_blobs(gt_ret, gt_labels)
+        gt_num = len(gt_blobs)
+
+
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
         #cv2.imshow("anno", anno*255)
         #cv2.waitKey(0)
-        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
-        ave_recall_ratio += recall_ratio
-        ave_false_ratio += false_ratio
+        recall_ratio_list = []
+        recall_ratio_list.append(i)
+        correct_ratio_list = []
+        correct_ratio_list.append(i)
+        for t in thresholds:
+            recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                          gt_num, gt_blobs)
+            recall_ratio_list.append(recall_ratio)
+            correct_ratio_list.append(correct_ratio)
+        recall_ratio_csv_writer.writerow(recall_ratio_list)
+        correct_ratio_csv_writer.writerow(correct_ratio_list)
 
-    return ave_recall_ratio / num, ave_false_ratio / num
+    recall_ratio_csv_file.close()
+    correct_ratio_csv_file.close()
+    print("Otsu recall and correct ratio, finished")
 
 def test_LRB(im_anno_list):
     ave_acc = 0
@@ -465,13 +517,21 @@ def test_LRB(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def LRB_recall_false_ratio(im_anno_list, threshold):
-
-    ave_recall_ratio = 0
-    ave_false_ratio = 0
+def LRB_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/LRB/"):
     num = len(im_anno_list)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
-    for im_anno in im_anno_list:
+    recall_ratio_path = save_path + "recall_ratio" + ".csv"
+    correct_ratio_path = save_path + "correct_ratio" + ".csv"
+    recall_ratio_csv_file = open(recall_ratio_path, "w", newline="")
+    recall_ratio_csv_writer = csv.writer(recall_ratio_csv_file, delimiter=",")
+    correct_ratio_csv_file = open(correct_ratio_path, "w", newline="")
+    correct_ratio_csv_writer = csv.writer(correct_ratio_csv_file, delimiter=",")
+    recall_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+    correct_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+
+    for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
@@ -481,16 +541,31 @@ def LRB_recall_false_ratio(im_anno_list, threshold):
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
+
+        gt_ret, gt_labels = cv2.connectedComponents(anno)
+        gt_blobs = get_blobs(gt_ret, gt_labels)
+        gt_num = len(gt_blobs)
+
+
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
         #cv2.imshow("anno", anno*255)
         #cv2.waitKey(0)
+        recall_ratio_list = []
+        recall_ratio_list.append(i)
+        correct_ratio_list = []
+        correct_ratio_list.append(i)
+        for t in thresholds:
+            recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                          gt_num, gt_blobs)
+            recall_ratio_list.append(recall_ratio)
+            correct_ratio_list.append(correct_ratio)
+        recall_ratio_csv_writer.writerow(recall_ratio_list)
+        correct_ratio_csv_writer.writerow(correct_ratio_list)
 
-        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
-        ave_recall_ratio += recall_ratio
-        ave_false_ratio += false_ratio
-
-    return ave_recall_ratio / num, ave_false_ratio / num
+    recall_ratio_csv_file.close()
+    correct_ratio_csv_file.close()
+    print("LRB recall and correct ratio, finished")
 
 def test_RG(im_anno_list):
 
@@ -523,33 +598,59 @@ def test_RG(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def RG_recall_false_ratio(im_anno_list, threshold):
-    ave_recall_ratio = 0
-    ave_false_ratio = 0
+def RG_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/RG/"):
     num = len(im_anno_list)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
-    for im_anno in im_anno_list:
+    recall_ratio_path = save_path + "recall_ratio" + ".csv"
+    correct_ratio_path = save_path + "correct_ratio" + ".csv"
+    recall_ratio_csv_file = open(recall_ratio_path, "w", newline="")
+    recall_ratio_csv_writer = csv.writer(recall_ratio_csv_file, delimiter=",")
+    correct_ratio_csv_file = open(correct_ratio_path, "w", newline="")
+    correct_ratio_csv_writer = csv.writer(correct_ratio_csv_file, delimiter=",")
+    recall_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+    correct_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+
+    for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
         im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         success, (well_centerx, well_centery, well_radius), im_well = well_detection(im, im_gray)
         im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
-        binary = rg.RG(im_well, threshold = 5)
+        binary = rg.RG(im_well, threshold=5)
 
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
+
+        gt_ret, gt_labels = cv2.connectedComponents(anno)
+        gt_blobs = get_blobs(gt_ret, gt_labels)
+        gt_num = len(gt_blobs)
+
+
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
         #cv2.imshow("anno", anno*255)
         #cv2.waitKey(0)
-        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
-        ave_recall_ratio += recall_ratio
-        ave_false_ratio += false_ratio
+        recall_ratio_list = []
+        recall_ratio_list.append(i)
+        correct_ratio_list = []
+        correct_ratio_list.append(i)
+        for t in thresholds:
+            recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                          gt_num, gt_blobs)
+            recall_ratio_list.append(recall_ratio)
+            correct_ratio_list.append(correct_ratio)
+        recall_ratio_csv_writer.writerow(recall_ratio_list)
+        correct_ratio_csv_writer.writerow(correct_ratio_list)
 
-    return ave_recall_ratio / num, ave_false_ratio / num
+    recall_ratio_csv_file.close()
+    correct_ratio_csv_file.close()
+    print("RG recall and correct ratio, finished")
 
 def test_UNet(im_anno_list):
-
+    unet_test.model.load_graph_frozen(
+        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
@@ -558,7 +659,7 @@ def test_UNet(im_anno_list):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary = unet_test.predict(threshold=0.9)
+        needle_binary, fish_binary, _, _ = unet_test.predict(threshold=0.9, size=12) # size not used
         binary = np.zeros(needle_binary.shape, np.uint8)
         binary[np.where(needle_binary > 0)] = 1
         binary[np.where(fish_binary > 0)] = 1
@@ -581,14 +682,22 @@ def test_UNet(im_anno_list):
 
     print("time per frame", time_used / num)
 
-def UNet_recall_false_ratio(im_anno_list, threshold):
-    ave_recall_ratio = 0
-    ave_false_ratio = 0
+def UNet_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/U-Net/"):
     num = len(im_anno_list)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
-    for im_anno in im_anno_list:
+    recall_ratio_path = save_path + "recall_ratio" + ".csv"
+    correct_ratio_path = save_path + "correct_ratio" + ".csv"
+    recall_ratio_csv_file = open(recall_ratio_path, "w", newline="")
+    recall_ratio_csv_writer = csv.writer(recall_ratio_csv_file, delimiter=",")
+    correct_ratio_csv_file = open(correct_ratio_path, "w", newline="")
+    correct_ratio_csv_writer = csv.writer(correct_ratio_csv_file, delimiter=",")
+    recall_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+    correct_ratio_csv_writer.writerow(["threshold"] + thresholds.tolist())
+
+    for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
-
         unet_test.load_im(im)
         needle_binary, fish_binary, _ = unet_test.predict(threshold=0.9)
         binary = np.zeros(needle_binary.shape, np.uint8)
@@ -598,16 +707,37 @@ def UNet_recall_false_ratio(im_anno_list, threshold):
         anno = np.zeros(anno_needle.shape, np.uint8)
         anno[np.where(anno_needle == 1)] = 1
         anno[np.where(anno_fish == 1)] = 1
+
+        gt_ret, gt_labels = cv2.connectedComponents(anno)
+        gt_blobs = get_blobs(gt_ret, gt_labels)
+        gt_num = len(gt_blobs)
+
+
         #cv2.imshow("binary", binary*255)
         #cv2.waitKey(0)
         #cv2.imshow("anno", anno*255)
         #cv2.waitKey(0)
-        recall_ratio, false_ratio = recall_false_ratio(binary, anno, threshold)
-        ave_recall_ratio += recall_ratio
-        ave_false_ratio += false_ratio
+        recall_ratio_list = []
+        recall_ratio_list.append(i)
+        correct_ratio_list = []
+        correct_ratio_list.append(i)
+        for t in thresholds:
+            recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                          gt_num, gt_blobs)
+            recall_ratio_list.append(recall_ratio)
+            correct_ratio_list.append(correct_ratio)
+        recall_ratio_csv_writer.writerow(recall_ratio_list)
+        correct_ratio_csv_writer.writerow(correct_ratio_list)
 
-    return ave_recall_ratio / num, ave_false_ratio / num
+    recall_ratio_csv_file.close()
+    correct_ratio_csv_file.close()
+    print("U-Net recall and correct ratio, finished")
 
+"""
+-------------------------------------
+test PC JI of U-Net: needle and larva separately
+-------------------------------------
+"""
 def test_UNet_detailed(im_anno_list, save = True):
     ave_needle_acc = 0
     ave_fish_acc = 0
@@ -623,7 +753,7 @@ def test_UNet_detailed(im_anno_list, save = True):
         im, anno_needle, anno_fish = im_anno
 
         unet_test.load_im(im)
-        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=44)
+        needle_binary, fish_binary, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9, size_fish=12)
 
         if save:
             save_im = np.zeros(needle_binary.shape, np.uint8)
@@ -657,6 +787,12 @@ def test_UNet_detailed(im_anno_list, save = True):
     print("average fish iu", ave_fish_iu / num_fish)
 
     print("time per frame", time_used / num_im)
+
+"""
+-------------------------------------
+test Recall correct ratio of U-Net: needle and larva separately
+-------------------------------------
+"""
 
 def UNet_detailed_recall_false_ratio(im_anno_list, threshold):
     ave_needle_recall_ratio = 0
@@ -729,6 +865,12 @@ def UNet_larva_recall_false_ratio(im_anno_list, threshold, larva_num):
            ave_fish_correct_ratio / num_fish
 """
 
+"""
+-------------------------------------
+test Recall correct ratio of U-Net: needle and larva separately and 
+with different number of larvae in each image
+-------------------------------------
+"""
 def test_Unet_larva_recall_false_ratio_by_num(im_anno_list, thre_steps = 100, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
     unet_test.model.load_graph_frozen(
         model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
@@ -803,67 +945,12 @@ def test_Unet_larva_recall_false_ratio_by_num(im_anno_list, thre_steps = 100, sa
     plt.show()
     """
 
-def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
-    threshold = np.arange(thre_steps)/thre_steps
-    b_recall_ratios = []
-    b_false_ratios = []
-    O_recall_ratios = []
-    O_false_ratios = []
-    L_recall_ratios = []
-    L_false_ratios = []
-    R_recall_ratios = []
-    R_false_ratios = []
-    U_recall_ratios = []
-    U_false_ratios = []
-    for t in threshold:
-        print("for threshold:", t)
-        r, f = binarization_recall_false_ratio(im_anno_list, t)
-        b_recall_ratios.append(r)
-        b_false_ratios.append(f)
-        print("binarization", r, f)
 
-        r, f = Otsu_recall_false_ratio(im_anno_list, t)
-        O_recall_ratios.append(r)
-        O_false_ratios.append(f)
-        print("Otsu", r, f)
-
-        r, f = LRB_recall_false_ratio(im_anno_list, t)
-        L_recall_ratios.append(r)
-        L_false_ratios.append(f)
-        print("LRB", r, f)
-
-        r, f = RG_recall_false_ratio(im_anno_list, t)
-        R_recall_ratios.append(r)
-        R_false_ratios.append(f)
-        print(r, f)
-
-        r, f = UNet_recall_false_ratio(im_anno_list, t)
-        U_recall_ratios.append(r)
-        U_false_ratios.append(f)
-        print("UNet", r, f)
-
-    fig = plt.figure()
-    plt.plot(threshold, b_recall_ratios, marker = ".", label = "Thresholding")
-    plt.plot(threshold, O_recall_ratios, marker = "s", label = "Otsu Thresholding")
-    plt.plot(threshold, L_recall_ratios, marker = "*", label = "linear regression")
-    plt.plot(threshold, R_recall_ratios, marker = "h", label = "Region growing")
-    plt.plot(threshold, U_recall_ratios, marker = "x", label = "U Net")
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Recall Ratio")
-    plt.title("Comparison of recall ratio when Threshold of IOU changes")
-    plt.show()
-    plt.plot(threshold, b_false_ratios, marker = ".", label="Thresholding")
-    plt.plot(threshold, O_false_ratios, marker = "s", label="Otsu Thresholding")
-    plt.plot(threshold, L_false_ratios, marker = "*", label="linear regression")
-    plt.plot(threshold, R_false_ratios, marker = "h", label="Region growing")
-    plt.plot(threshold, U_false_ratios, marker = "x", label="U Net")
-    plt.legend(loc="best")
-    plt.xlabel("Threshold of IOU")
-    plt.ylabel("Correct Detection Ratio")
-    plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
-    plt.show()
-
+"""
+-------------------------------------
+select the suitable threshold for the size thresholding for the postprocessing of U-Net
+-------------------------------------
+"""
 def test_UNet_select_size_thre(im_anno_list, save = False):
     unet_test.model.load_graph_frozen(model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     ave_needle_accs = []
@@ -954,6 +1041,12 @@ def test_UNet_select_size_thre(im_anno_list, save = False):
     print("time per frame", time_used / num_im)
     """
 
+"""
+-------------------------------------
+select the best model (training epoch) of U-net before the postprocessing of U-Net
+-------------------------------------
+"""
+
 def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models-trained-on200-2/"):
     """
     test all models of U-Net with different augmentation methods and find out the best model on the evaluation dataset
@@ -1039,7 +1132,7 @@ def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models
 
                 unet_test.load_im(im)
                 needle_binary, fish_binary, _, im_with_points, fish_points = unet_test.get_keypoint(threshold=0.9,
-                                                                                                 size_fish=44)
+                                                                                                 size_fish=12)
 
                 if len(np.where(anno_needle == 1)[0]) > 0:
                     acc_needle = mean_accuracy(needle_binary, anno_needle)
@@ -1107,6 +1200,93 @@ def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models
     plt.show()
     plt.legend(labels=["PC Needle", "JI Needle", "", "JI Larva"], loc="best")
     '''
+
+def test_all_JI_PC(im_anno_list):
+    print("testing binarization")
+    test_binarization(im_anno_list)
+    print("testing Otsu")
+    test_Otsu(im_anno_list)
+    print("testing LRB")
+    test_LRB(im_anno_list)
+    print("testing RG")
+    test_RG(im_anno_list)
+    print("testing U-Net")
+    test_UNet(im_anno_list)
+
+def test_all_recall_correct_ratio(im_anno_list, thre_steps = 100):
+    thresholds = np.arange(thre_steps)/thre_steps
+    print("testing binarization")
+    binarization_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/binarization/")
+    print("testing Otsu")
+    Otsu_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/otsu/")
+    print("testing LRB")
+    LRB_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/lrb/")
+    print("testing RG")
+    RG_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/rg/")
+    print("testing U-Net")
+    UNet_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/u-net/")
+
+def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
+    threshold = np.arange(thre_steps)/thre_steps
+    b_recall_ratios = []
+    b_false_ratios = []
+    O_recall_ratios = []
+    O_false_ratios = []
+    L_recall_ratios = []
+    L_false_ratios = []
+    R_recall_ratios = []
+    R_false_ratios = []
+    U_recall_ratios = []
+    U_false_ratios = []
+    for t in threshold:
+        print("for threshold:", t)
+        r, f = binarization_recall_false_ratio(im_anno_list, t)
+        b_recall_ratios.append(r)
+        b_false_ratios.append(f)
+        print("binarization", r, f)
+
+        r, f = Otsu_recall_false_ratio(im_anno_list, t)
+        O_recall_ratios.append(r)
+        O_false_ratios.append(f)
+        print("Otsu", r, f)
+
+        r, f = LRB_recall_false_ratio(im_anno_list, t)
+        L_recall_ratios.append(r)
+        L_false_ratios.append(f)
+        print("LRB", r, f)
+
+        r, f = RG_recall_false_ratio(im_anno_list, t)
+        R_recall_ratios.append(r)
+        R_false_ratios.append(f)
+        print(r, f)
+
+        r, f = UNet_recall_false_ratio(im_anno_list, t)
+        U_recall_ratios.append(r)
+        U_false_ratios.append(f)
+        print("UNet", r, f)
+
+    fig = plt.figure()
+    plt.plot(threshold, b_recall_ratios, marker = ".", label = "Thresholding")
+    plt.plot(threshold, O_recall_ratios, marker = "s", label = "Otsu Thresholding")
+    plt.plot(threshold, L_recall_ratios, marker = "*", label = "linear regression")
+    plt.plot(threshold, R_recall_ratios, marker = "h", label = "Region growing")
+    plt.plot(threshold, U_recall_ratios, marker = "x", label = "U Net")
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Recall Ratio")
+    plt.title("Comparison of recall ratio when Threshold of IOU changes")
+    plt.show()
+    plt.plot(threshold, b_false_ratios, marker = ".", label="Thresholding")
+    plt.plot(threshold, O_false_ratios, marker = "s", label="Otsu Thresholding")
+    plt.plot(threshold, L_false_ratios, marker = "*", label="linear regression")
+    plt.plot(threshold, R_false_ratios, marker = "h", label="Region growing")
+    plt.plot(threshold, U_false_ratios, marker = "x", label="U Net")
+    plt.legend(loc="best")
+    plt.xlabel("Threshold of IOU")
+    plt.ylabel("Correct Detection Ratio")
+    plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
+    plt.show()
+
 '''
 Exceptions
 '''
