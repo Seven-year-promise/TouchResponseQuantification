@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 binarize = Binarization(method = "Binary")
 otsu = Binarization(method = "Otsu")
-lrb = Binarization(method = "LRB")
+lrb = Binarization(method = "LRB", lr_model_path="Methods/LR_models/train-on200/para700000.txt")
 rg = Binarization(method = "RG")
 unet_test = UNetTestTF()
 #unet_test.model.load_graph_frozen(model_path="Methods/UNet_tf/ori_UNet/models-trained-on200/models_contrast_finished/UNet500.pb")
@@ -649,15 +649,15 @@ def RG_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval
     print("RG recall and correct ratio, finished")
 
 def test_UNet(im_anno_list):
-    unet_test.model.load_graph_frozen(
-        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+
     ave_acc = 0
     ave_iu = 0
     num = len(im_anno_list)
     time_cnt = time.time()
     for im_anno in im_anno_list:
         im, anno_needle, anno_fish = im_anno
-
+        unet_test.model.load_graph_frozen(
+            model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
         unet_test.load_im(im)
         needle_binary, fish_binary, _, _ = unet_test.predict(threshold=0.9, size=12) # size not used
         binary = np.zeros(needle_binary.shape, np.uint8)
@@ -683,6 +683,8 @@ def test_UNet(im_anno_list):
     print("time per frame", time_used / num)
 
 def UNet_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Eval_All_Method/U-Net/"):
+    unet_test.model.load_graph_frozen(
+        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
     num = len(im_anno_list)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -699,7 +701,7 @@ def UNet_recall_correct_ratio(im_anno_list, thresholds, save_path = "./Method/Ev
     for i, im_anno in enumerate(im_anno_list):
         im, anno_needle, anno_fish = im_anno
         unet_test.load_im(im)
-        needle_binary, fish_binary, _ = unet_test.predict(threshold=0.9)
+        needle_binary, fish_binary, _, _ = unet_test.predict(threshold=0.9, size=12) # size not used
         binary = np.zeros(needle_binary.shape, np.uint8)
         binary[np.where(needle_binary > 0)] = 1
         binary[np.where(fish_binary > 0)] = 1
@@ -1202,6 +1204,7 @@ def UNet_select_epoch(im_anno_list, save_path = "Methods/UNet_tf/ori_UNet/models
     '''
 
 def test_all_JI_PC(im_anno_list):
+    '''
     print("testing binarization")
     test_binarization(im_anno_list)
     print("testing Otsu")
@@ -1210,11 +1213,13 @@ def test_all_JI_PC(im_anno_list):
     test_LRB(im_anno_list)
     print("testing RG")
     test_RG(im_anno_list)
+    '''
     print("testing U-Net")
     test_UNet(im_anno_list)
 
 def test_all_recall_correct_ratio(im_anno_list, thre_steps = 100):
     thresholds = np.arange(thre_steps)/thre_steps
+    '''
     print("testing binarization")
     binarization_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/binarization/")
     print("testing Otsu")
@@ -1224,8 +1229,10 @@ def test_all_recall_correct_ratio(im_anno_list, thre_steps = 100):
     print("testing RG")
     RG_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/rg/")
     print("testing U-Net")
+    '''
     UNet_recall_correct_ratio(im_anno_list, thresholds, save_path="./Methods/Eval-All-Methods/u-net/")
 
+"""
 def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
     threshold = np.arange(thre_steps)/thre_steps
     b_recall_ratios = []
@@ -1286,6 +1293,8 @@ def test_all_recall_false_ratio(im_anno_list, thre_steps = 100):
     plt.ylabel("Correct Detection Ratio")
     plt.title("Comparison of correct detection ratio when Threshold of IOU changes")
     plt.show()
+"""
+
 
 '''
 Exceptions
@@ -1327,7 +1336,9 @@ if __name__ == '__main__':
     #test_UNet(im_anno_list)
     #test_UNet_detailed(im_anno_list, save=True)
     #test_UNet_select_size_thre(im_anno_list)
-    test_Unet_larva_recall_false_ratio_by_num(im_anno_list, 100)
+    #test_Unet_larva_recall_false_ratio_by_num(im_anno_list, 100)#
+    test_all_JI_PC(im_anno_list)
+    #test_all_recall_correct_ratio(im_anno_list)
     #test_all_recall_false_ratio(im_anno_list, 20)
     #test_Unet_split_recall_false_ratio(im_anno_list, thre_steps=10)
     #UNet_select_epoch(im_anno_list, modeldir = "Methods/UNet_tf/models_noise/", model_type="Models with augmentation of random Gaussian noise")

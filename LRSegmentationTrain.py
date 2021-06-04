@@ -38,7 +38,7 @@ if __name__ == '__main__':
     train_im_path = "./Methods/UNet_tf/data/train/Images/"
     train_anno_path = "./Methods/UNet_tf/data/train/annotation/"
 
-    LR = LogisticRegressionSeg(lr=[0.01, 0.0001], model_save_path="./LR_models/train-on200",
+    LR = LogisticRegressionSeg(lr=[0.01, 0.0001], model_save_path="Methods/LR_models/train-on200",
                                num_iter=1000000, fit_intercept=True)
 
     images = []

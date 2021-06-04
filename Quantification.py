@@ -504,10 +504,10 @@ class BehaviorQuantify:
 
 if __name__ == '__main__':
     behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
-    base_path = "./Methods/Multi-fish_experiments/"
-    date = ["20210507-1_73hpf_veli/"] #["20210522-4compounds/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
-    capacity = ["6white/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
-    touching_part = [""]
+    base_path = "./demo_videos/"
+    date = ["20210129/"] #["20210522-4compounds/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
+    capacity = ["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
+    touching_part = ["body/"]
     save_path = "./tracking_saved/"
     quantification_result_path = "./QuantificationResults/"
     for d in date:
