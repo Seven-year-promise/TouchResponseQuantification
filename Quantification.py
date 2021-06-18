@@ -542,10 +542,13 @@ if __name__ == '__main__':
                             success, frame = cap.read()
                         cap.release()
 
+                        begin_time = time.clock()
                         behav_quantify.load_video(video)
                         behav_quantify.quantification_init()
                         t_l, c_m, cpt, t_r, d_m = behav_quantify.quantify(save_path = save_path+d + c + p, video_name=f)
-
+                        end_time = time.clock()
+                        ave_time = (end_time - begin_time) / len(video)
+                        print("average time", ave_time)
                         # for saving the quantification
                         result_csv_writer.writerow([f, t_l, c_m, cpt, t_r, d_m])
 
