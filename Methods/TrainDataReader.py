@@ -191,3 +191,96 @@ def generate_batch_data(images, gt_boxes, well_infos, resize, or_threshold, num,
         #print(label)
 
     return features, labels
+
+
+def generate_seg_pos(fore_ground_coor, block_size):
+    num = fore_ground_coor[0].shape[0]
+    half_b_s = int(block_size / 2)
+    ind = np.random.randint(0, num, size=1, dtype=int)[0]
+    block_centerx = fore_ground_coor[1][ind]
+    block_centery = fore_ground_coor[0][ind]
+    block_minx = int(block_centerx - half_b_s)
+    block_maxx = int(block_centerx + half_b_s)
+    block_miny = int(block_centery - half_b_s)
+    block_maxy = int(block_centery + half_b_s)
+    if block_minx < 0:
+        block_minx = 0
+    if block_miny < 0:
+        block_miny = 0
+
+    return (block_minx, block_maxx, block_miny, block_maxy)
+
+def generate_seg_neg(back_ground_coor, block_size):
+    num = back_ground_coor[0].shape[0]
+    half_b_s = int(block_size / 2)
+    ind = np.random.randint(0, num, size=1, dtype=int)[0]
+    block_centerx = back_ground_coor[1][ind]
+    block_centery = back_ground_coor[0][ind]
+    block_minx = block_centerx # - half_b_s + half_b_s
+    block_maxx = block_centerx + half_b_s + half_b_s
+    block_miny = block_centery # - half_b_s + half_b_s
+    block_maxy = block_centery + half_b_s + half_b_s
+    if block_minx < 0:
+        block_minx = 0
+    if block_miny < 0:
+        block_miny = 0
+
+    return (block_minx, block_maxx, block_miny, block_maxy)
+
+def generate_seg_batch_data(images, gt_segs, resize, num, block_size = 24):
+    """
+    Aim: first generate a feature with "block_size" shape and reshape it into "resize" shape
+    :param images:
+    :param gt_boxes:
+    :param well_infos:
+    :param resize:
+    :param or_threshold:
+    :param num:
+       :param block_size:
+    :return:
+        feature: N x C, N:samples, C:channels
+        labels: N x 1
+    """
+    features = np.zeros((num, resize*resize), dtype=np.float32)
+    labels = np.zeros(num, dtype=np.float32)
+
+    label = 0
+
+    for i in range(num):
+        im = images[i]
+        gt_seg = gt_segs[i]
+        fore_ground_coors = np.where(gt_seg > 0)
+        half_b_s = int(block_size / 2)
+        back_ground_coors = np.where(gt_seg[half_b_s : (-half_b_s), half_b_s : (-half_b_s)] < 1)
+        if label:
+            block_minx, block_maxx, block_miny, block_maxy = generate_seg_neg(back_ground_coor = back_ground_coors,
+                                                                          block_size = block_size)
+            label = 0
+        else:
+            box_num = fore_ground_coors[0].shape[0]
+            #print(box_num)
+            if box_num<1:
+                block_minx, block_maxx, block_miny, block_maxy = generate_seg_neg(back_ground_coor = back_ground_coors,
+                                                                          block_size = block_size)
+                label = 0
+            else:
+                box_ind = np.random.randint(0, box_num, size=1, dtype=int)[0]
+                block_minx, block_maxx, block_miny, block_maxy = generate_seg_pos(fore_ground_coors, block_size)
+                label = 1
+
+        labels[i] = label
+        #print(im.shape)
+        #print(block_minx, block_maxx, block_miny, block_maxy, block_size, label)
+        im_block = im[block_miny:block_maxy, block_minx:block_maxx]
+        #if label == 0:
+        #    cv2.imshow("im", im)
+        #    cv2.imshow("im_block", im_block)
+        #    cv2.waitKey(0)
+        im_block = cv2.resize(im_block, (resize, resize), fx=0, fy=0)
+        #print(im_block.shape)
+        feature = np.array(im_block, dtype=np.float32).reshape(1, -1)
+        #print(resize)
+        features[i, :] = feature[0, :] / 255.0
+        #print(label)
+
+    return features, labels

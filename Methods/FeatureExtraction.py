@@ -43,10 +43,10 @@ class SIFT:
         return descriptors
 
 class Binarization:
-    def __init__(self, method = "Otsu"):
+    def __init__(self, method = "Otsu", lr_model_path = None):
         self.method = method
         if self.method == "LRB":
-            self.lr = LogisticRegression(resume=True, paras_file="./paras/para850000.txt")
+            self.lr = LogisticRegression(resume=True, paras_file=lr_model_path)
         if self.method == "RG":
             self.rg = RegionGrow()
 

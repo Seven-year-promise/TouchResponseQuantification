@@ -12,7 +12,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from PIL import Image
 import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+#tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
 
@@ -31,7 +31,7 @@ class UNet(object):
         # 标注
         self.annotations = tf.placeholder(tf.float32, shape=[None, self.conf.im_size, self.conf.im_size, 2], name='annotations')
         # 构建UNet网络结构
-        self.predict = self.inference()
+        self.predict = self.inference() #self.LightCNN2() #
         # 损失函数，分类精度
         self.loss_op = self.combined_loss()
         self.accuracy_op = self.accuracy()
@@ -55,8 +55,7 @@ class UNet(object):
         self.eval_FLAG = False
 
     def config_summary(self, name):
-        summarys = [tf.summary.scalar(name + '/loss', self.loss_op),
-                    tf.summary.scalar(name + '/accuracy', self.accuracy_op)]
+        summarys = [tf.summary.scalar(name + '/loss', self.loss_op)]
         summary = tf.summary.merge(summarys)
         return summary
 
@@ -86,12 +85,6 @@ class UNet(object):
 
         tf.train.write_graph(graph_or_graph_def=self.sess.graph_def, logdir=self.conf.modeldir, name=pbtxt_filename, as_text=True)
 
-        # Freeze graph
-        # Method 1
-        freeze_graph.freeze_graph(input_graph=pbtxt_filepath, input_saver='', input_binary=False,
-                                  input_checkpoint=ckpt_filepath, output_node_names='cnn/output',
-                                  restore_op_name='save/restore_all', filename_tensor_name='save/Const:0',
-                                  output_graph=pb_filepath, clear_devices=True, initializer_nodes='')
 
     def reload(self, step):
         checkpoint_path = os.path.join(
@@ -147,59 +140,103 @@ class UNet(object):
         conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
         conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
 
-        self.predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
+        predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
                        is_training=self.conf.is_training, stride=1,
                        name="cnn/output",
                        activation=False)
 
-        return self.predict
+        return predict
 
     def LightCNN(self):
-        conv1 = conv(self.images, shape=[3, 3, 1, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv1 = conv(conv1, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        pool1 = max_pool(conv1, size=2)
+        conv1a = conv(self.images, shape=[3, 3, 1, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv1a", activation=False)
+        MFM1a = MFM(conv1a, name = "MFM1a") # out 32 channels
+        conv1b = conv(MFM1a, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv1b", activation=False)
+        MFM1b = MFM(conv1b, name = "MFM1b") # out 32 channels
+        pool1 = max_pool(MFM1b, size=2)
 
-        conv2 = conv(pool1, shape=[3, 3, 64, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv2 = conv(conv2, shape=[3, 3, 128, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        pool2 = max_pool(conv2, size=2)
+        conv2a = conv(pool1, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv2a", activation=False)
+        MFM2a = MFM(conv2a, name="MFM2a") # out 32 channels
+        conv2b = conv(MFM2a, shape=[3, 3, 32, 128], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv2b", activation=False)
+        MFM2b = MFM(conv2b, name="MFM2b") # out 64 channels
+        pool2 = max_pool(MFM2b, size=2)
 
-        conv3 = conv(pool2, shape=[3, 3, 128, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv3 = conv(conv3, shape=[3, 3, 256, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        pool3 = max_pool(conv3, size=2)
+        conv3a = conv(pool2, shape=[3, 3, 64, 128], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv3a", activation=False)
+        MFM3a = MFM(conv3a, name="MFM3a")  # out 64 channels
+        conv3b = conv(MFM3a, shape=[3, 3, 64, 256], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv3b", activation=False)
+        MFM3b = MFM(conv3b, name="MFM3b")  # out 128 channels
+        pool3 = max_pool(MFM3b, size=2)
 
-        conv4 = conv(pool3, shape=[3, 3, 256, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv4 = conv(conv4, shape=[3, 3, 512, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        pool4 = max_pool(conv4, size=2)
+        conv4a = conv(pool3, shape=[3, 3, 128, 256], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv4a", activation=False)
+        MFM3a = MFM(conv4a, name="MFM4a")  # out 128 channels
+        conv4b = conv(MFM3a, shape=[3, 3, 128, 512], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv4b", activation=False)
+        MFM4b = MFM(conv4b, name="MFM4b")  # out 256 channels
+        pool4 = max_pool(MFM4b, size=2)
 
-        conv5 = conv(pool4, shape=[3, 3, 512, 1024], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv5 = conv(conv5, shape=[3, 3, 1024, 1024], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        conv5a = conv(pool4, shape=[3, 3, 256, 512], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv5a", activation=False)
+        MFM5a = MFM(conv5a, name="MFM5a")  # out 256 channels
+        conv5b = conv(MFM5a, shape=[3, 3, 256, 1024], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv5b", activation=False)
+        MFM5b = MFM(conv5b, name="MFM5b")  # out 512 channels
 
-        up6 = deconv(conv5, shape=[2, 2, 512, 1024], stride=2, stddev=0.1)
-        merge6 = concat(up6, conv4)
-        conv6 = conv(merge6, shape=[3, 3, 1024, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv6 = conv(conv6, shape=[3, 3, 512, 512], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        up6 = deconv(MFM5b, shape=[2, 2, 256, 512], stride=2, stddev=0.1)
+        merge6 = concat(up6, MFM4b)
+        conv6a = conv(merge6, shape=[3, 3, 512, 512], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv6b", activation=False)
+        MFM6a = MFM(conv6a, name="MFM6a")  # out 256 channels
+        conv6b = conv(MFM6a, shape=[3, 3, 256, 512], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv6b", activation=False)
+        MFM6b = MFM(conv6b, name="MFM6b")  # out 256 channels
 
-        up7 = deconv(conv6, shape=[2, 2, 256, 512], stride=2, stddev=0.1)
-        merge7 = concat(up7, conv3)
-        conv7 = conv(merge7, shape=[3, 3, 512, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv7 = conv(conv7, shape=[3, 3, 256, 256], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        up7 = deconv(MFM6b, shape=[2, 2, 128, 256], stride=2, stddev=0.1)
+        merge7 = concat(up7, MFM3b)
+        conv7a = conv(merge7, shape=[3, 3, 256, 256], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv7a", activation=False)
+        MFM7a = MFM(conv7a, name="MFM7a")  # out 128 channels
+        conv7b = conv(MFM7a, shape=[3, 3, 128, 256], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv7b", activation=False)
+        MFM7b = MFM(conv7b, name="MFM7b")  # out 128 channels
 
-        up8 = deconv(conv7, shape=[2, 2, 128, 256], stride=2, stddev=0.1)
-        merge8 = concat(up8, conv2)
-        conv8 = conv(merge8, shape=[3, 3, 256, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv8 = conv(conv8, shape=[3, 3, 128, 128], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        up8 = deconv(MFM7b, shape=[2, 2, 64, 128], stride=2, stddev=0.1)
+        merge8 = concat(up8, MFM2b)
+        conv8a = conv(merge8, shape=[3, 3, 128, 128], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv8a", activation=False)
+        MFM8a = MFM(conv8a, name="MFM8a")  # out 64 channels
+        conv8b = conv(MFM8a, shape=[3, 3, 64, 128], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv8b", activation=False)
+        MFM8b = MFM(conv8b, name="MFM8b")  # out 64 channels
 
-        up9 = deconv(conv8, shape=[2, 2, 64, 128], stride=2, stddev=0.1)
-        merge9 = concat(up9, conv1)
-        conv9 = conv(merge9, shape=[3, 3, 128, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
-        conv9 = conv(conv9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1)
+        up9 = deconv(MFM8b, shape=[2, 2, 32, 64], stride=2, stddev=0.1)
+        merge9 = concat(up9, MFM1b)
+        conv9a = conv(merge9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv9a", activation=False)
+        MFM9a = MFM(conv9a, name="MFM8a")  # out 32 channels
+        conv9b = conv(MFM9a, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv9b", activation=False)
+        MFM9b = MFM(conv9b, name="MFM8b")  # out 32 channels
 
-        self.light_predict = conv(conv9, shape=[3, 3, 64, 2], stddev=0.1,
+        light_predict = conv(MFM9b, shape=[3, 3, 32, 2], stddev=0.1,
                        is_training=self.conf.is_training, stride=1,
                        name="cnn/output",
                        activation=False)
 
-        return self.light_predict
+        return light_predict
+
+    def LightCNN2(self):
+        conv1a = conv(self.images, shape=[3, 3, 1, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv1a", activation=False)
+        MFM1a = MFM(conv1a, name = "MFM1a") # out 32 channels
+        conv1b = conv(MFM1a, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv1b", activation=False)
+        MFM1b = MFM(conv1b, name = "MFM1b") # out 32 channels
+        pool1 = max_pool(MFM1b, size=2)
+
+        conv2a = conv(pool1, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv2a", activation=False)
+        MFM2a = MFM(conv2a, name="MFM2a") # out 32 channels
+        conv2b = conv(MFM2a, shape=[3, 3, 32, 128], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv2b", activation=False)
+        MFM2b = MFM(conv2b, name="MFM2b") # out 64 channels
+
+        up9 = deconv(MFM2b, shape=[2, 2, 32, 64], stride=2, stddev=0.1)
+        merge9 = concat(up9, MFM1b)
+        conv9a = conv(merge9, shape=[3, 3, 64, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv9a", activation=False)
+        MFM9a = MFM(conv9a, name="MFM8a")  # out 32 channels
+        conv9b = conv(MFM9a, shape=[3, 3, 32, 64], stddev=0.1, is_training=self.conf.is_training, stride=1, name = "conv9b", activation=False)
+        MFM9b = MFM(conv9b, name="MFM8b")  # out 32 channels
+
+        light_predict = conv(MFM9b, shape=[3, 3, 32, 2], stddev=0.1,
+                       is_training=self.conf.is_training, stride=1,
+                       name="cnn/output",
+                       activation=False)
+
+        return light_predict
 
     def loss(self, scope='loss'):
         """
@@ -259,6 +296,8 @@ class UNet(object):
             #output = math_ops.log(output / (1 - output))
             #output = tf.cast(output, dtype=tf.float32)
             binary_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.annotations, logits=self.predict)
+            #binary_loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.annotations, logits=self.predict)
+
             binary_loss = tf.reduce_mean(binary_loss)
             binary_loss *= self.conf.bce_weight
             loss_op = dice_loss + binary_loss#tf.concat([dice_loss, binary_loss], axis=-1)
@@ -312,7 +351,7 @@ class UNet(object):
 
         return x + gaussian_noise
 
-    def augmentation(self, im_size, x, y, random_rotate = True, contrast = True, noise = True):
+    def augmentation(self, im_size, x, y, random_rotate = True, contrast = True, noise = False):
         out_x = np.ones((x.shape[0], im_size, im_size, 1), x.dtype)
         out_y = np.ones((y.shape[0], im_size, im_size, y.shape[3]), y.dtype)
         num = x.shape[0]
@@ -380,44 +419,48 @@ class UNet(object):
         #with tf.device("/device:XLA_GPU:0"):
         tf.train.start_queue_runners(sess=self.sess)
         print('Begin Train')
-
+        print('Augmentation rotation:', self.conf.rotation, ' contrast:', self.conf.contrast, ' noise:',
+              self.conf.noise)
         needle_accs = []
         needle_ius = []
         fish_accs = []
         fish_ius = []
         steps = []
-
+        self.sess.graph.finalize()
+        start_time = time.time()
         for train_step in range(self.conf.reload_step, self.conf.max_step + 1):
-            start_time = time.time()
+
 
             x, y = self.sess.run([images, labels])
-            x, y = self.augmentation(240, x, y, random_rotate = True, contrast = True, noise = True)
+            x, y = self.augmentation(240, x, y, random_rotate = self.conf.rotation, contrast = self.conf.contrast, noise = self.conf.noise)
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)
             #cv2.waitKey(0)
+
             if train_step == 1 or train_step % self.conf.summary_interval == 0:
                 feed_dict = {self.images: x,
                              self.annotations: y}
-                loss, acc, _, summary = self.sess.run(
-                    [self.loss_op, self.accuracy_op, self.optimizer, self.train_summary],
+                loss, _, summary = self.sess.run(
+                    [self.loss_op, self.optimizer, self.train_summary],
                     feed_dict=feed_dict)
-                print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
+
 
 
                 self.save_summary(summary, train_step + self.conf.reload_step)
                 end_time = time.time()
                 time_diff = end_time - start_time
-                print("Time usage: " + str(timedelta(seconds=int(round(time_diff)))))
+                print(str(train_step), '----Training loss:', loss, "Time usage: " + str(time_diff))
             # print 损失和准确性
             else:
                 feed_dict = {self.images: x,
                              self.annotations: y}
-                loss, acc, _ = self.sess.run(
-                    [self.loss_op, self.accuracy_op, self.optimizer], feed_dict=feed_dict)
+                loss, _ = self.sess.run(
+                    [self.loss_op, self.optimizer], feed_dict=feed_dict)
                 #print(str(train_step), '----Training loss:', loss, ' accuracy:', acc, end=' ')
             # 保存模型
             if train_step % self.conf.save_interval == 0:
+                print("saving for ", self.conf.modeldir)
                 self.save(train_step)
         """
                 steps.append(train_step)
@@ -534,12 +577,13 @@ class UNet(object):
         return label
 
     def predicts(self, threshold = 0.9):
-        model_path = "models/UNet18000.pb"
-        self.load_graph(model_path)
+        model_path = "LightCNN2/models_rotate_contrast/"
+        self.load_graph_step(model_path, 3000)
         standard = self.images/255 - 0.5 #tf.image.per_image_standardization(self.images)
 
-        for n in range(70, 200):
-            img = os.path.join('data/test/Images/', str(n) + '.jpg')
+        print(time.clock())
+        for n in range(0, 200):
+            img = os.path.join('data/train/Images/2020/', str(n) + '.jpg')
             img = cv2.imread(img)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             _, (well_x, well_y, _), im_well = well_detection(img, gray)
@@ -561,7 +605,7 @@ class UNet(object):
                                       self.input: img
                                   })
             label = np.squeeze(label)
-            print(label, label.shape)
+            #print(label, label.shape)
             label = tf.convert_to_tensor(label)
             label = tf.nn.sigmoid(label, name='sigmoid')
             with tf.Session() as sess:
@@ -572,17 +616,19 @@ class UNet(object):
             label[label > threshold] = 255
             label[label <= threshold] = 0
             #label = label[:, :, 1] * 255
-            cv2.imshow("label", label[:, :, 1])
-            cv2.waitKey(0)
+            #cv2.imshow("label", label[:, :, 1])
+            #cv2.waitKey(0)
             print(n)
+            print(time.clock())
             #im = Image.fromarray(label.astype('uint8'))
             #im.save(os.path.join('data/render_test/predict/', str(n) + '.png'))
 
-    def load_graph(self, model_path):
+    def load_graph_frozen(self, model_path):
         '''
         Lode trained model.
         '''
         #print('Loading model...')
+        tf.reset_default_graph()
         self.graph = tf.Graph()
 
         with tf.gfile.GFile(model_path, 'rb') as f:
@@ -599,7 +645,7 @@ class UNet(object):
             self.input = tf.placeholder(np.float32, shape=[None, 240, 240, 1], name='x')
             tf.import_graph_def(graph_def, {'x': self.input})
 
-        self.graph.finalize()
+
 
         #print('Model loading complete!')
 
@@ -622,3 +668,32 @@ class UNet(object):
         # self.sess = tf.InteractiveSession(graph = self.graph)
         self.output = self.graph.get_tensor_by_name("import/cnn/output:0")
         self.sess = tf.Session(graph=self.graph)
+        self.graph.finalize()
+
+    def load_graph_step(self, model_path, steps):
+        self.sess = tf.Session()
+        saver = tf.train.import_meta_graph(model_path + "UNet.ckpt-" + str(steps) + ".meta")
+        print(model_path + "UNet.ckpt-" + str(steps) + ".meta")
+        saver.restore(self.sess, tf.train.latest_checkpoint(model_path)) # add the latest model, not current model
+
+        self.graph = tf.get_default_graph()
+
+        #print(self.graph.get_operations())
+        self.input = self.graph.get_tensor_by_name("x:0")
+
+        self.output = self.graph.get_tensor_by_name("cnn/output:0")
+
+    def load_graph(self, model_path, ckpt_path):
+        self.sess = tf.Session()
+        saver = tf.train.import_meta_graph(model_path)
+        print(model_path, ckpt_path)
+        saver.restore(self.sess, tf.train.load_checkpoint(ckpt_path))
+
+        self.graph = tf.get_default_graph()
+
+        #print(self.graph.get_operations())
+        self.input = self.graph.get_tensor_by_name("x:0")
+
+        self.output = self.graph.get_tensor_by_name("cnn/output:0")
+
+    
