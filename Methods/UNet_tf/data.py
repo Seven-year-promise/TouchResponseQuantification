@@ -19,6 +19,8 @@ def create_record(data_path, im_size, records_path):
             name = im_name[:-4]
             img = cv2.imread(train_im_path + im_name)
             #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            '''
             anno = cv2.imread(train_anno_path + name + "_label.tif")
             # anno = cv2.erode(anno, (3, 3), iterations=2)
             anno = anno[:, :, 1]
@@ -26,6 +28,14 @@ def create_record(data_path, im_size, records_path):
             anno_needle[np.where(anno == 1)] = 1
             anno_fish = np.zeros(anno.shape, dtype=np.uint8)
             anno_fish[np.where(anno == 2)] = 1
+            '''
+            anno_needle = cv2.imread(train_anno_path + name + "_label_1.tif")
+            # anno = cv2.erode(anno, (3, 3), iterations=2)
+            anno_needle = anno_needle[:, :, 1]
+
+            anno_fish = cv2.imread(train_anno_path + name + "_label_2.tif")
+            # anno = cv2.erode(anno, (3, 3), iterations=2)
+            anno_fish = anno_fish[:, :, 1]
 
             anno_together = np.zeros((im_size, im_size, 2), dtype=np.uint8)
             anno_together[:, :, 0] = anno_needle
