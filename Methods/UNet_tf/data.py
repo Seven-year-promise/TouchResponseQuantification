@@ -4,7 +4,7 @@ import os
 import numpy as np
 import cv2
 
-FILE_NAME = ["2020"] #,"01202","01203","01204","01205"]
+FILE_NAME = [""] #,"01202","01203","01204","01205"]
 def create_record(data_path, im_size, records_path):
     writer = tf.io.TFRecordWriter(records_path)
     base_im_path = data_path + 'Images/'

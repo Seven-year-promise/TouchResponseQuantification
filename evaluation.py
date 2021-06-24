@@ -954,23 +954,23 @@ select the suitable threshold for the size thresholding for the postprocessing o
 -------------------------------------
 """
 def test_UNet_select_size_thre(im_anno_list, save = False):
-    unet_test.model.load_graph_frozen(model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+    unet_test.model.load_graph_step(model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/", steps = 30000)
     ave_needle_accs = []
     ave_fish_accs = []
     ave_needle_ius = []
     ave_fish_ius = []
     save_path = "./Methods/UNet_tf/ori_UNet/models-trained-on200-2/"
-    PC_Larva_path = save_path + "size_thre_PC_Larva.csv"
+    PC_Larva_path = save_path + "size_thre_PC_Larva80.csv"
     #if os.path.exists(PC_Larva_path) == False:
     #    os.makedirs(PC_Larva_path)
-    JI_Larva_path = save_path + "size_thre_JI_Larva.csv"
+    JI_Larva_path = save_path + "size_thre_JI_Larva80.csv"
     #if os.path.exists(JI_Larva_path) == False:
     #    os.makedirs(JI_Larva_path)
     PC_Larva_csv_file = open(PC_Larva_path, "w", newline="")
     PC_Larva_csv_writer = csv.writer(PC_Larva_csv_file, delimiter=",")
     JI_Larva_csv_file = open(JI_Larva_path, "w", newline="")
     JI_Larva_csv_writer = csv.writer(JI_Larva_csv_file, delimiter=",")
-    for threshold in range(0, 70, 1):
+    for threshold in range(60, 80, 1):
         ave_needle_acc = 0
         ave_fish_acc = 0
         ave_needle_iu = 0

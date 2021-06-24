@@ -331,13 +331,12 @@ class UNet(object):
         y_img0_rotate = y_img0.rotate(rotate, expand=False)
         y_img1_rotate = y_img1.rotate(rotate, expand=False)
 
-        x_cv_color = np.asarray(x_img_rotate)
-        x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
+        x_cv_gray = np.asarray(x_img_rotate)
 
         y_cv0_gray = np.asarray(y_img0_rotate)
         y_cv1_gray = np.asarray(y_img1_rotate)
 
-        return x_cv_color, x_cv_gray, y_cv0_gray, y_cv1_gray
+        return x_cv_gray, y_cv0_gray, y_cv1_gray
 
     def contrast_brightness(self, x):
         alpha = np.random.random(1)[0]
@@ -361,23 +360,41 @@ class UNet(object):
             y_copy0 = np.array(y[n, :, :, 0], np.uint8)
             y_copy1 = np.array(y[n, :, :, 1], np.uint8)
 
-            if random_rotate:
-                x_cv_color, x_cv_gray, y_cv0_gray, y_cv1_gray = self.random_rotate(x_copy, y_copy0, y_copy1)
-            else:
-                x_cv_color = x_copy
-                x_cv_gray = cv2.cvtColor(x_cv_color, cv2.COLOR_BGR2GRAY)
-                y_cv0_gray = y_copy0
-                y_cv1_gray = y_copy1
-
-            #cv2.imshow("x_cv_gray", x_cv_gray)
-            #cv2.waitKey(0)
-            _, (well_x, well_y, _), im_well = well_detection(x_cv_color, x_cv_gray)
+            x_gray = cv2.cvtColor(x_copy, cv2.COLOR_BGR2GRAY)
+            _, (well_x, well_y, _), im_well = well_detection(x_copy, x_gray)
             im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
-            x_min = int(well_x - im_size / 2)
-            x_max = int(well_x + im_size / 2)
-            y_min = int(well_y - im_size / 2)
-            y_max = int(well_y + im_size / 2)
-            x_block = im_well[y_min:y_max, x_min:x_max]
+            if well_x < 240:
+                x_d_edge = well_x
+            else:
+                x_d_edge = 480 - well_x
+            if well_y < 240:
+                y_d_edge = well_y
+            else:
+                y_d_edge = 480 - well_y
+            if x_d_edge > y_d_edge:
+                d_edge = y_d_edge
+            else:
+                d_edge = x_d_edge
+            x_min = int(well_x - d_edge)
+            x_max = int(well_x + d_edge)
+            y_min = int(well_y - d_edge)
+            y_max = int(well_y + d_edge)
+            x_copy_block = im_well[y_min:y_max, x_min:x_max]
+            y_copy_block0 = y_copy0[y_min:y_max, x_min:x_max]
+            y_copy_block1 = y_copy1[y_min:y_max, x_min:x_max]
+
+            if random_rotate:
+                x_cv_gray, y_cv0_gray, y_cv1_gray = self.random_rotate(x_copy_block, y_copy_block0, y_copy_block1)
+            else:
+                x_cv_gray = x_copy_block
+                y_cv0_gray = y_copy_block0
+                y_cv1_gray = y_copy_block1
+
+            x_min = int(d_edge - im_size / 2)
+            x_max = int(d_edge + im_size / 2)
+            y_min = int(d_edge - im_size / 2)
+            y_max = int(d_edge+ im_size / 2)
+            x_block = x_cv_gray[y_min:y_max, x_min:x_max]
 
             if contrast:
                 x_block = self.contrast_brightness(x_block)
@@ -436,6 +453,12 @@ class UNet(object):
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)
+
+            #show2 = np.array(y[0, :, :, 0] * 255, dtype=np.uint8)
+            #cv2.imshow("show2", show2)
+
+            #show3 = np.array(x[0, :, :, 0] * 255 + 128, dtype=np.uint8)
+            #cv2.imshow("shows3", show3)
             #cv2.waitKey(0)
 
             if train_step == 1 or train_step % self.conf.summary_interval == 0:

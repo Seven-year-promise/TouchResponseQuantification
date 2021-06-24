@@ -3,7 +3,7 @@ import numpy as np
 from Methods.FeatureExtraction import SIFT, Binarization
 
 
-
+"""
 def well_detection(im, gray, threshold = 50):
     # gray = cv2.medianBlur(gray, 5)
     rows = gray.shape[0]
@@ -11,18 +11,6 @@ def well_detection(im, gray, threshold = 50):
                                param1=240, param2=50,
                                minRadius=95, maxRadius=105)
     #print(circles)
-    """
-    muted when training
-    if circles is not None:
-        circles_int = np.uint16(np.around(circles))
-        for i in circles_int[0, :]:
-            center = (i[0], i[1])
-            # circle center
-            cv2.circle(gray, center, 1, (0, 255, 0), 3)
-            # circle outline
-            radius = i[2]
-            cv2.circle(gray, center, radius, (0, 255, 0), 3)
-    """
     #cv2.imshow("detected circles", gray)
     #cv2.waitKey(1000)
     if circles is not None:
@@ -64,7 +52,7 @@ def well_detection(im, gray, threshold = 50):
 
     return True, (well_centerx, well_centery, well_radius), im_closing_inv
 
-
+"""
 
 def feature_extraction(ori_im, threshold = None, method = "Otsu", well_infos = None):
     #.sift.detect_keypoints(ori_im)

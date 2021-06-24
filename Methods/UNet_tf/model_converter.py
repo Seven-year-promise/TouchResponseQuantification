@@ -68,7 +68,35 @@ def model_freeze(pbtxt_filepath, ckpt_filepath, pb_filepath):
                               restore_op_name='save/restore_all', filename_tensor_name='save/Const:0',
                               output_graph=pb_filepath, clear_devices=True, initializer_nodes='')
 
+'''
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Prune and freeze weights from checkpoints into production models')
+    parser.add_argument("--pbtxt_filepath",
+                        default='./ori/UNet60000.pbtxt',
+                        type=str, help="Path to pbtxt file")
+    parser.add_argument("--ckpt_filepath",
+                        default='./LightCNN/models_rotate_contrast/UNet.ckpt',
+                        type=str, help="path of checkpoint file")
+    parser.add_argument("--output_graph",
+                        default='./LightCNN/models_rotate_contrast/UNet60000.pb',
+                        type=str, help="Output graph filename")
+    args = parser.parse_args()
 
+    model_dirs = ["./ori_UNet/models-trained-on200-2/models_contrast/",
+                  "./ori_UNet/models-trained-on200-2/models_contrast_noise/",
+                  "./ori_UNet/models-trained-on200-2/models_noise/",
+                  "./ori_UNet/models-trained-on200-2/models_ori/",
+                  "./ori_UNet/models-trained-on200-2/models_rotation_contrast/",
+                  "./ori_UNet/models-trained-on200-2/models_rotation_contrast_noise/",
+                  "./ori_UNet/models-trained-on200-2/models_rotation/",
+                  "./ori_UNet/models-trained-on200-2/models_rotation_noise/"]
+    for model_dir in model_dirs:
+        for step in range(500, 30001, 500):
+            model_freeze(pbtxt_filepath = model_dir + "UNet" + str(step) + ".pbtxt", ckpt_filepath = model_dir + "UNet.ckpt-" + str(step), pb_filepath = model_dir + "UNet" + str(step) + ".pb")
+            #freeze_graph(args.checkpoint_path, args.output_nodes, args.output_graph, args.rename_outputs)
+            
+'''
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Prune and freeze weights from checkpoints into production models')
