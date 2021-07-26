@@ -14,11 +14,12 @@ import csv
 
 import cv2
 from Methods.FeatureExtraction import Binarization
-
-
+from Methods.UNet_tf.test import *
+import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
 
 binarize = Binarization(method = "Binary")
+unet_test = UNetTestTF()
 
 def pixel_accuracy(eval_segm, gt_segm):
     '''
@@ -479,21 +480,170 @@ def binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, t
     plt.show()
     print("binarization recall and correct ratio, finished")
 
+def load_im(im, type):
+    # ---------------- read info -----------------------
+    unet_test.ori_im = im
+    gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    unet_test.ori_im_gray = gray
+
+    if type == "no":
+        _, (well_x, well_y, _), im_well = well_detection(gray, 220, 30, 110)
+        #cv2.imshow("im_well", im_well)
+    else:
+        _, (well_x, well_y, _), im_well = well_detection(gray, 220, 30, 100)
+    #im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+
+    unet_test.x_min = int(well_x - unet_test.conf.im_size / 2)
+    unet_test.x_max = int(well_x + unet_test.conf.im_size / 2)
+    unet_test.y_min = int(well_y - unet_test.conf.im_size / 2)
+    unet_test.y_max = int(well_y + unet_test.conf.im_size / 2)
+    im_block = im_well[unet_test.y_min:unet_test.y_max, unet_test.x_min:unet_test.x_max]
+
+    if DEBUG:
+        cv2.imwrite("./Methods/Methods_saved/im_well_block.png", im_block)
+    #cv2.imshow("needle", im_block)
+    #cv2.waitKey(0)
+    img = np.array(im_block, dtype=np.float32)
+    img = np.reshape(img, (1, unet_test.conf.im_size, unet_test.conf.im_size, 1))
+
+    img = img / 255 - 0.5
+    unet_test.img = np.reshape(img, (1, unet_test.conf.im_size, unet_test.conf.im_size, 1))
+
+def test_UNet(im_anno_list, type):
+    unet_test.model.load_graph_frozen(
+        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+
+    ave_acc = 0
+    ave_iu = 0
+    num = len(im_anno_list)
+    time_cnt = time.time()
+    for im_anno in im_anno_list:
+        im, _, anno_fish = im_anno
+
+        load_im(im, type)
+        _, fish_binary, _, _ = unet_test.predict(threshold=0.9, size=12) # size not used
+        binary = np.zeros(fish_binary.shape, np.uint8)
+        #binary[np.where(needle_binary > 0)] = 1
+        binary[np.where(fish_binary > 0)] = 1
+
+        anno = np.zeros(anno_fish.shape, np.uint8)
+        #anno[np.where(anno_needle == 1)] = 1
+        anno[np.where(anno_fish == 1)] = 1
+        #cv2.imshow("binary", binary*255)
+        #cv2.waitKey(0)
+        #cv2.imshow("anno", anno*255)
+        #cv2.waitKey(0)
+
+        accuracy = mean_accuracy(binary, anno)
+        ave_acc += accuracy
+        iu = mean_IU(binary, anno)
+        ave_iu += iu
+    time_used = time.time() - time_cnt
+    print("average accuracy", ave_acc / num)
+    print("average iu", ave_iu / num)
+
+    print("time per frame", time_used / num)
+
+def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds):
+    unet_test.model.load_graph_frozen(
+        model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+    num_thre = thresholds.shape[0]
+    recall_ratios_ring_no_ring = []
+    correct_ratios_ring_no_ring = []
+    labels = ["Without ring", "With ring"]
+
+    COLORS = ["tab:green", "tab:red"]
+    for t, im_anno_list in enumerate([no_ring_im_anno_list, ring_im_anno_list]):
+        num_im = len(im_anno_list)
+        recall_ratios = np.zeros((num_im, num_thre), np.float)
+        correct_ratios = np.zeros((num_im, num_thre), np.float)
+
+        if t == 0:
+            type = "no"
+        else:
+            type = ""
+
+        for i, im_anno in enumerate(im_anno_list):
+            im, _, anno_fish = im_anno
+
+            load_im(im, type)
+            _, fish_binary, _, _ = unet_test.predict(threshold=0.9, size=12)  # size not used
+            binary = np.zeros(fish_binary.shape, np.uint8)
+            # binary[np.where(needle_binary > 0)] = 1
+            binary[np.where(fish_binary > 0)] = 1
+
+            anno = np.zeros(anno_fish.shape, np.uint8)
+            #anno[np.where(anno_needle == 1)] = 1
+            anno[np.where(anno_fish == 1)] = 1
+
+            gt_ret, gt_labels = cv2.connectedComponents(anno)
+            gt_blobs = get_blobs(gt_ret, gt_labels)
+            gt_num = len(gt_blobs)
+
+
+            #cv2.imshow("binary", binary*255)
+            #cv2.waitKey(0)
+            #cv2.imshow("anno", anno*255)
+            #cv2.waitKey(0)
+            recall_ratio_list = []
+            recall_ratio_list.append(i)
+            correct_ratio_list = []
+            correct_ratio_list.append(i)
+            for j, t in enumerate(thresholds):
+                recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                              gt_num, gt_blobs)
+                recall_ratios[i, j] = recall_ratio
+                correct_ratios[i, j] = correct_ratio
+
+        recall_ratios_ave = np.average(recall_ratios, axis=0)
+        correct_ratios_ave = np.average(correct_ratios, axis=0)
+
+        recall_ratios_ring_no_ring.append(recall_ratios_ave)
+        correct_ratios_ring_no_ring.append(correct_ratios_ave)
+
+
+    axis_font = {'fontname': 'Times New Roman', 'size': '14'}
+    legend_font = font_manager.FontProperties(family='Times New Roman',
+                                       style='normal', size=14)
+
+    for r, l, c in zip(recall_ratios_ring_no_ring, labels, COLORS):
+        plt.plot(thresholds, r, label=l, color=c)
+
+    plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
+    plt.ylabel("Ratio of recall ($R_r$)", **axis_font)
+
+    plt.legend(loc="upper right", prop=legend_font)
+    plt.tight_layout()
+    plt.show()
+
+
+    for correct, l, c in zip(correct_ratios_ring_no_ring, labels, COLORS):
+        plt.plot(thresholds, correct, label=l, color=c)
+    plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
+    plt.ylabel("Ratio of precision ($R_p$)", **axis_font)
+
+    plt.legend(loc="upper right", prop=legend_font)
+    plt.tight_layout()
+    plt.show()
+    print("binarization recall and correct ratio, finished")
+
 
 def test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list):
     print("data for no ring")
-    test_binarization(no_ring_im_anno_list, type = "no")
+    #test_binarization(no_ring_im_anno_list, type = "no")
+    test_UNet(no_ring_im_anno_list, type="no")
 
     print("data for ring")
-    test_binarization(ring_im_anno_list, type = "")
+    #test_binarization(ring_im_anno_list, type = "")
+    test_UNet(ring_im_anno_list, type="")
 
 def test_all_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thre_steps = 100):
     thresholds = np.arange(thre_steps - 1)/thre_steps + 0.01
 
     print("testing binarization")
-    binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
+    #+-binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
 
-
+    UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
 
 if __name__ == '__main__':
     no_ring_im_path = "./comparison_with_without_ring/20210611-white-no-rings-no-touching/Images/"
@@ -537,6 +687,6 @@ if __name__ == '__main__':
         ring_im_anno_list.append([im, anno_needle, anno_fish])
     print("total images", len(ring_im_anno_list))
 
-    test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list)
+    #test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list)
     test_all_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, 100)
 
