@@ -13,6 +13,8 @@ import os
 import csv
 
 import cv2
+import sys
+sys.path.append('../')
 from Methods.FeatureExtraction import Binarization
 from Methods.UNet_tf.test import *
 import matplotlib.font_manager as font_manager
@@ -326,23 +328,26 @@ def well_detection(gray, high_thre, low_thre, radius):
     rows = gray.shape[0]
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 5,
                                param1=high_thre, param2=low_thre,
-                               minRadius=radius-3, maxRadius=radius+3)
+                               minRadius=radius-10, maxRadius=radius+10)
     #print(circles)
-    '''
+    radius = 175
+
     #muted when training
+    """
+    im_color = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
     if circles is not None:
         circles_int = np.uint16(np.around(circles))
         for i in circles_int[0, :]:
             center = (i[0], i[1])
             # circle center
-            cv2.circle(gray, center, 1, (0, 255, 0), 3)
+            cv2.circle(im_color, center, 1, (0, 255, 0), 3)
             # circle outline
             radius = i[2]
-            cv2.circle(gray, center, radius, (0, 255, 0), 3)
+            cv2.circle(im_color, center, 170, (0, 255, 0), 3)
+    cv2.imshow("detected circles", im_color)
+    cv2.waitKey(0)
+    """
 
-    cv2.imshow("detected circles", gray)
-    cv2.waitKey(1000)
-    '''
     if circles is not None:
         well_centerx = np.uint16(np.round(np.average(circles[0, :, 0])))
         well_centery = np.uint16(np.round(np.average(circles[0, :, 1])))
@@ -364,15 +369,18 @@ def well_detection(gray, high_thre, low_thre, radius):
     mask_inv = cv2.bitwise_not(mask)
     gray_masked += mask_inv
 
+    #cv2.imshow("cropped", gray_masked)
+    #cv2.waitKey(0)
+
     return True, (well_centerx, well_centery, well_radius), gray_masked
 
 def binarization(im, thre = 190, type = "no"):
     im_gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     if type == "no":
-        _, _, im_well = well_detection(im_gray, 220, 30, 110)
+        _, _, im_well = well_detection(im_gray, 220, 30, 200)
         #cv2.imshow("im_well", im_well)
     else:
-        _, _, im_well = well_detection(im_gray, 220, 30, 100)
+        _, _, im_well = well_detection(im_gray, 220, 30, 200)
         #cv2.imshow("im_well", im_well)
     ret, th = cv2.threshold(im_well, thre, 255, cv2.THRESH_BINARY)
     binary = np.zeros(th.shape, np.uint8)
@@ -408,69 +416,77 @@ def test_binarization(im_anno_list, type):
 
     print("time per frame", time_used / num)
 
-def binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds):
+def binarization_recall_correct_ratio(no_ring_im_anno_lists, ring_im_anno_lists, thresholds):
     num_thre = thresholds.shape[0]
-    recall_ratios_ring_no_ring = []
-    correct_ratios_ring_no_ring = []
+    recall_ratios_ring_no_rings = []
+    correct_ratios_ring_no_rings = []
     labels = ["Without ring", "With ring"]
+    larvae_nums = ["5 larvae", "6 larvae", "7 larvae", "8 larvae", "9 larvae", "10 larvae"]
 
-    COLORS = ["tab:green", "tab:red"]
-    for t, im_anno_list in enumerate([no_ring_im_anno_list, ring_im_anno_list]):
-        num_im = len(im_anno_list)
-        recall_ratios = np.zeros((num_im, num_thre), np.float)
-        correct_ratios = np.zeros((num_im, num_thre), np.float)
+    COLORS = ["tab:green", "tab:red", "tab:blue","tab:orange", "tab:purple", "tab:brown"]
+    for t, im_anno_lists in enumerate([no_ring_im_anno_lists, ring_im_anno_lists]):
+        recall_ratios_ring_no_ring_n = []
+        correct_ratios_ring_no_ring_n = []
+        for n, im_anno_list in enumerate(im_anno_lists): # 5, 6, 7, 8, 9, 10 larvae
+            l_n = n + 5.0
+            num_im = len(im_anno_list)
+            recall_ratios = np.zeros((num_im, num_thre), np.float)
+            correct_ratios = np.zeros((num_im, num_thre), np.float)
 
-        if t == 0:
-            type = "no"
-        else:
-            type = ""
+            if t == 0:
+                type = "no"
+            else:
+                type = ""
 
-        for i, im_anno in enumerate(im_anno_list):
-            im, anno_needle, anno_fish = im_anno
+            for i, im_anno in enumerate(im_anno_list):
+                im, anno_needle, anno_fish = im_anno
 
-            binary = binarization(im, type = type)
+                binary = binarization(im, type = type)
 
-            anno = np.zeros(anno_needle.shape, np.uint8)
-            anno[np.where(anno_needle == 1)] = 1
-            anno[np.where(anno_fish == 1)] = 1
+                anno = np.zeros(anno_needle.shape, np.uint8)
+                #anno[np.where(anno_needle == 1)] = 1  #   oly evaluation for the larvae
+                anno[np.where(anno_fish == 1)] = 1
 
-            gt_ret, gt_labels = cv2.connectedComponents(anno)
-            gt_blobs = get_blobs(gt_ret, gt_labels)
-            gt_num = len(gt_blobs)
+                gt_ret, gt_labels = cv2.connectedComponents(anno)
+                gt_blobs = get_blobs(gt_ret, gt_labels)
+                gt_num = len(gt_blobs)
 
 
-            #cv2.imshow("binary", binary*255)
-            #cv2.waitKey(0)
-            #cv2.imshow("anno", anno*255)
-            #cv2.waitKey(0)
-            recall_ratio_list = []
-            recall_ratio_list.append(i)
-            correct_ratio_list = []
-            correct_ratio_list.append(i)
-            for j, t in enumerate(thresholds):
-                recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
-                                                                              gt_num, gt_blobs)
-                recall_ratios[i, j] = recall_ratio
-                correct_ratios[i, j] = correct_ratio
+                #cv2.imshow("binary", binary*255)
+                #cv2.imshow("anno", anno*255)
+                #cv2.waitKey(0)
 
-        recall_ratios_ave = np.average(recall_ratios, axis=0)
-        correct_ratios_ave = np.average(correct_ratios, axis=0)
+                recall_ratio_list = []
+                recall_ratio_list.append(i)
+                correct_ratio_list = []
+                correct_ratio_list.append(i)
+                for j, t in enumerate(thresholds):
+                    recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+                                                                                  gt_num, gt_blobs)
+                    recall_ratios[i, j] = recall_ratio
+                    correct_ratios[i, j] = correct_ratio
 
-        recall_ratios_ring_no_ring.append(recall_ratios_ave)
-        correct_ratios_ring_no_ring.append(correct_ratios_ave)
+            recall_ratios_ave = np.average(recall_ratios, axis=0)
+            correct_ratios_ave = np.average(correct_ratios, axis=0)
 
-    for r, l, c in zip(recall_ratios_ring_no_ring, labels, COLORS):
+            recall_ratios_ring_no_ring_n.append(recall_ratios_ave * l_n)
+            correct_ratios_ring_no_ring_n.append(correct_ratios_ave * l_n)
+
+        recall_ratios_ring_no_rings.append(recall_ratios_ring_no_ring_n) # data with ring and with no ring
+        correct_ratios_ring_no_rings.append(correct_ratios_ring_no_ring_n) # data with ring and with no ring
+
+    for r, l, c in zip(recall_ratios_ring_no_rings[0], larvae_nums, COLORS):
         plt.plot(thresholds, r, label=l, color=c)
 
     plt.xlabel("Threshold of IOU ($T_{IOU}$)")
-    plt.ylabel("Ratio of recall ($R_r$)")
+    plt.ylabel("Number of recall")
 
     plt.legend(loc="upper right")
     plt.tight_layout()
     plt.show()
 
 
-    for correct, l, c in zip(correct_ratios_ring_no_ring, labels, COLORS):
+    for correct, l, c in zip(correct_ratios_ring_no_rings[0], larvae_nums, COLORS):
         plt.plot(thresholds, correct, label=l, color=c)
     plt.xlabel("Threshold of IOU ($T_{IOU}$)")
     plt.ylabel("Ratio of precision ($R_p$)")
@@ -602,9 +618,9 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
         correct_ratios_ring_no_ring.append(correct_ratios_ave)
 
 
-    axis_font = {'fontname': 'Times New Roman', 'size': '18'}
+    axis_font = {'fontname': 'Times New Roman', 'size': '14'}
     legend_font = font_manager.FontProperties(family='Times New Roman',
-                                       style='normal', size=18)
+                                       style='normal', size=14)
 
     for r, l, c in zip(recall_ratios_ring_no_ring, labels, COLORS):
         plt.plot(thresholds, r, label=l, color=c)
@@ -637,39 +653,45 @@ def test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list):
     #test_binarization(ring_im_anno_list, type = "")
     test_UNet(ring_im_anno_list, type="")
 
-def test_all_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thre_steps = 100):
+def test_all_recall_correct_ratio(no_ring_im_anno_lists, ring_im_anno_lists, thre_steps = 100):
     thresholds = np.arange(thre_steps - 1)/thre_steps + 0.01
 
     print("testing binarization")
-    #+-binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
+    binarization_recall_correct_ratio(no_ring_im_anno_lists, ring_im_anno_lists, thresholds)
 
-    UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
+    print("testing U-Net")
+    #UNet_recall_correct_ratio(no_ring_im_anno_lists, ring_im_anno_lists, thresholds)
 
 if __name__ == '__main__':
-    no_ring_im_path = "./comparison_with_without_ring/20210611-white-no-rings-no-touching/Images/"
-    no_ring_anno_path = "./comparison_with_without_ring/20210611-white-no-rings-no-touching/Annotations/"
+    no_ring_im_path = "./20210723-6well-dataset-no_ring/Images/"
+    no_ring_anno_path = "./20210723-6well-dataset-no_ring/Annotations/"
 
-    ring_im_path = "./comparison_with_without_ring/20210521-5s-spontaneous-movement/after_shake/Images/"
-    ring_anno_path = "./comparison_with_without_ring/20210521-5s-spontaneous-movement/after_shake/Annotations/"
+    #ring_im_path = "./comparison_with_without_ring/20210521-5s-spontaneous-movement/after_shake/Images/"
+    #ring_anno_path = "./comparison_with_without_ring/20210521-5s-spontaneous-movement/after_shake/Annotations/"
 
+    larvae_num = ["5/", "6/", "7/", "8/", "9/", "10/"]
+    no_ring_im_anno_lists = []
+    for l_n in larvae_num:
+        no_ring_im_anno_list_n = []
+        ims_name = os.listdir(no_ring_im_path + l_n)
+        annos_name = os.listdir(no_ring_anno_path + l_n)
+        for im_name in ims_name:
+            name = im_name[:-4]
+            im = cv2.imread(no_ring_im_path + l_n + im_name)
+            anno = cv2.imread(no_ring_anno_path + l_n + name + "_label.tif")
+            #anno = cv2.erode(anno, (3, 3), iterations=2)
+            anno = anno[:, :, 1]
+            anno_needle = np.zeros(anno.shape, dtype=np.uint8)
+            anno_needle[np.where(anno == 1)] = 1
+            anno_fish = np.zeros(anno.shape, dtype=np.uint8)
+            anno_fish[np.where(anno == 2)] = 1
 
-    no_ring_im_anno_list = []
-    ims_name = os.listdir(no_ring_im_path)
-    annos_name = os.listdir(no_ring_anno_path)
-    for im_name in ims_name:
-        name = im_name[:-4]
-        im = cv2.imread(no_ring_im_path + im_name)
-        anno = cv2.imread(no_ring_anno_path + name + "_label.tif")
-        #anno = cv2.erode(anno, (3, 3), iterations=2)
-        anno = anno[:, :, 1]
-        anno_needle = np.zeros(anno.shape, dtype=np.uint8)
-        anno_needle[np.where(anno == 1)] = 1
-        anno_fish = np.zeros(anno.shape, dtype=np.uint8)
-        anno_fish[np.where(anno == 2)] = 1
+            no_ring_im_anno_list_n.append([im, anno_needle, anno_fish])
+        print("total images", len(no_ring_im_anno_list_n))
+        no_ring_im_anno_lists.append(no_ring_im_anno_list_n)
 
-        no_ring_im_anno_list.append([im, anno_needle, anno_fish])
-    print("total images", len(no_ring_im_anno_list))
-
+    ring_im_anno_lists = []
+    """
     ring_im_anno_list = []
     ims_name = os.listdir(ring_im_path)
     annos_name = os.listdir(ring_anno_path)
@@ -686,7 +708,8 @@ if __name__ == '__main__':
 
         ring_im_anno_list.append([im, anno_needle, anno_fish])
     print("total images", len(ring_im_anno_list))
+    """
 
     #test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list)
-    test_all_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, 100)
+    test_all_recall_correct_ratio(no_ring_im_anno_lists, ring_im_anno_lists, 100)
 
