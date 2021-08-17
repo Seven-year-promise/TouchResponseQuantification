@@ -109,23 +109,27 @@ def well_detection_strong(im, gray, threshold = 50):
 
     # second fine-tuned mask
     ret, th = cv2.threshold(gray_masked, threshold, 255, cv2.THRESH_BINARY)
-    kernel = np.ones((50, 50), dtype=np.uint8)
+    kernel = np.ones((100, 100), dtype=np.uint8)
     closing = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
-    im_closing = cv2.bitwise_and(im, im, mask=closing)
+    kernel = np.ones((55, 55), dtype=np.uint8)
+    median = cv2.cv2.medianBlur(closing, 55)
+    #cv2.imshow("opening", median)
+    #cv2.waitKey(1000)
+    im_median = cv2.bitwise_and(im, im, mask=median)
 
-    white_indexes = np.where(closing == 255)
+    white_indexes = np.where(median == 255)
     well_centery = int(np.round(np.average(white_indexes[0])))
     well_centerx = int(np.round(np.average(white_indexes[1])))
     # third fine-tuned mask for background white
-    closing_inv = cv2.bitwise_not(closing)
-    closing_inv = np.array((closing_inv, closing_inv, closing_inv)).transpose(1, 2, 0)
-    im_closing_inv = closing_inv + im_closing
+    median_inv = cv2.bitwise_not(median)
+    median_inv = np.array((median_inv, median_inv, median_inv)).transpose(1, 2, 0)
+    im_median_inv = median_inv + im_median
 
     #cv2.circle(gray, (well_centerx, well_centery), 1, (0, 255, 0), 5)
     #cv2.imshow("detected circles", im_closing_inv)
     #cv2.waitKey(1000)
 
-    return True, (well_centerx, well_centery, well_radius), im_closing_inv
+    return True, (well_centerx, well_centery, well_radius), im_median_inv
 
 # Weights
 def new_weights(shape, stddev):

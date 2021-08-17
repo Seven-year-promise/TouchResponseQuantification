@@ -93,7 +93,7 @@ class RegionGrow:
                     continue
                 grayDiff = self.getGrayDiff(img, currentPoint, Point(tmpX, tmpY))
                 grayOri = img[tmpY, tmpX]
-                if grayDiff < diff_thre and seedMark[tmpY, tmpX] == 0 and grayOri < binary_high_thre and grayOri > binary_low_thre:
+                if seedMark[tmpY, tmpX] == 0 and grayOri < binary_high_thre and grayOri > binary_low_thre and grayDiff < diff_thre: # and
                     size += 1
                     seedMark[tmpY, tmpX] = 255
                     seedList.append(Point(tmpX, tmpY))

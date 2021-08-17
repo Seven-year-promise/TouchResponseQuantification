@@ -168,6 +168,10 @@ class BehaviorQuantify:
         else:
             self.unet_test.load_im(self.video[0])
             needle_binary, _, larva_binary, larva_blobs = self.unet_test.predict(threshold=0.9, size=12)
+            # morphography
+            kernel = np.ones((5, 5), np.uint8)
+            need_closing = cv2.morphologyEx(needle_binary*255, cv2.MORPH_CLOSE, kernel)
+            larva_binary[need_closing==255] = 0
 
             cv2.imwrite("tracking_saved/original_im.jpg", self.video[0][SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX])
             cv2.imwrite("tracking_saved/larva_binary.jpg", larva_binary[SAVE_Y_MIN:SAVE_Y_MAX, SAVE_X_MIN:SAVE_X_MAX]*255)
@@ -194,7 +198,7 @@ class BehaviorQuantify:
         if not strong:
             _, (well_x, well_y, _), im_well = well_detection(im, gray)
         else:
-            _, (well_x, well_y, _), im_well = well_detection_strong(im, gray, threshold=150)
+            _, (well_x, well_y, _), im_well = well_detection_strong(im, gray, threshold=200)
         im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
 
         return im_well
@@ -253,7 +257,7 @@ class BehaviorQuantify:
             blur = cv2.medianBlur(frame, 5)
             binary = self.RG.regionGrowLocalApply(blur,
                                                   [Point(x_ave, y_ave)], # Point (x, y)
-                                                  diff_thre=20,
+                                                  diff_thre=100,
                                                   binary_high_thre=220,
                                                   binary_low_thre=50,
                                                   size_thre=200)
@@ -294,14 +298,14 @@ class BehaviorQuantify:
             larva_patch[blob[:, 0] - y_min, blob[:, 1] - x_min] = 1
             larva_patches.append(larva_patch)
             #cv2.imshow("binary", larva_patch + 255)
-            #cv2.waitKey(0)
+            #cv2.waitKey(1)
             # remap the flob to the original size
 
             fblobs.append(blob)
             tuned_binary[blob[:, 0], blob[:, 1]] = 1
 
-        #cv2.imshow("local", tuned_binary*255)
-        #cv2.waitKey(0)
+        cv2.imshow("local", tuned_binary*255)
+        cv2.waitKey(1)
 
         return tuned_binary, larva_patches, fblobs, tuned_points
 
@@ -333,8 +337,8 @@ class BehaviorQuantify:
         for im in self.video[1:]:
             id_im += 1
             new_gray = self.preprocessing(im, strong=True)
-            #cv2.imshow("well", new_gray)
-            #cv2.waitKey(1)
+            cv2.imshow("well", new_gray)
+            cv2.waitKey(1)
             im_with_pars = im.copy()
             draw_particles(im_with_pars, self.larva_tracker2.new_particles)
             needle_point = self.needle_tracker.track(old_gray, new_gray)
@@ -503,7 +507,7 @@ class BehaviorQuantify:
             return t_l, c_m, cpt, t_r, d_m
 
 if __name__ == '__main__':
-    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models-trained-on200-2/models_rotation_contrast/UNet30000.pb")
+    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models_update/UNet14000.pb")
     base_path = "./demo_videos/"
     date = ["20210129/"] #["20210522-4compounds/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
     capacity = ["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",

@@ -551,7 +551,7 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
     recall_ratios_ring_no_ring = []
     correct_ratios_ring_no_ring = []
     labels = ["Without ring", "With ring"]
-
+    LINE_TYPES = ['--', '-.']
     COLORS = ["tab:green", "tab:red"]
     for t, im_anno_list in enumerate([no_ring_im_anno_list, ring_im_anno_list]):
         num_im = len(im_anno_list)
@@ -581,16 +581,17 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
             gt_num = len(gt_blobs)
 
 
-            #cv2.imshow("binary", binary*255)
-            #cv2.waitKey(0)
-            #cv2.imshow("anno", anno*255)
-            #cv2.waitKey(0)
+            #if t>0:
+            #   print("type", type, t)
+            #    cv2.imshow("binary", binary*255)
+            #    cv2.imshow("anno", anno*255)
+            #    cv2.waitKey(0)
             recall_ratio_list = []
             recall_ratio_list.append(i)
             correct_ratio_list = []
             correct_ratio_list.append(i)
-            for j, t in enumerate(thresholds):
-                recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, t,
+            for j, th in enumerate(thresholds):
+                recall_ratio, _, correct_ratio = recall_false_ratio(binary, anno, th,
                                                                               gt_num, gt_blobs)
                 recall_ratios[i, j] = recall_ratio
                 correct_ratios[i, j] = correct_ratio
@@ -606,22 +607,22 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
     legend_font = font_manager.FontProperties(family='Times New Roman',
                                        style='normal', size=18)
 
-    for r, l, c in zip(recall_ratios_ring_no_ring, labels, COLORS):
-        plt.plot(thresholds, r, label=l, color=c)
+    for r, l, c, l_t in zip(recall_ratios_ring_no_ring, labels, COLORS, LINE_TYPES):
+        plt.plot(thresholds, r, ls = l_t, label=l, color=c)
 
     plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
     plt.ylabel("Ratio of recall ($R_r$)", **axis_font)
-
+    plt.ylim((0, 1))
     plt.legend(loc="upper right", prop=legend_font)
     plt.tight_layout()
     plt.show()
 
 
-    for correct, l, c in zip(correct_ratios_ring_no_ring, labels, COLORS):
-        plt.plot(thresholds, correct, label=l, color=c)
+    for correct, l, c, l_t in zip(correct_ratios_ring_no_ring, labels, COLORS, LINE_TYPES):
+        plt.plot(thresholds, correct, ls = l_t, label=l, color=c)
     plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
     plt.ylabel("Ratio of precision ($R_p$)", **axis_font)
-
+    plt.ylim((0, 1))
     plt.legend(loc="upper right", prop=legend_font)
     plt.tight_layout()
     plt.show()
@@ -640,7 +641,7 @@ def test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list):
 def test_all_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thre_steps = 100):
     thresholds = np.arange(thre_steps - 1)/thre_steps + 0.01
 
-    print("testing binarization")
+    print("testing U-Net")
     #+-binarization_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
 
     UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, thresholds)
