@@ -7,9 +7,9 @@ def well_detection(im, gray, threshold = 50):
     rows = gray.shape[0]
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 5,
                                param1=220, param2=30,
-                               minRadius=95, maxRadius=105)
+                               minRadius=170, maxRadius=180)
     #print(circles)
-    '''
+    """
     #muted when training
     if circles is not None:
         circles_int = np.uint16(np.around(circles))
@@ -22,19 +22,19 @@ def well_detection(im, gray, threshold = 50):
             cv2.circle(gray, center, radius, (0, 255, 0), 3)
 
     cv2.imshow("detected circles", gray)
-    cv2.waitKey(1000)
-    '''
+    cv2.waitKey(0)
+    """
     if circles is not None:
         well_centerx = np.uint16(np.round(np.average(circles[0, :, 0])))
         well_centery = np.uint16(np.round(np.average(circles[0, :, 1])))
-        well_radius = 110 #np.uint16(np.round(np.max(circles[0, :, 2])))
+        well_radius = 195 #np.uint16(np.round(np.max(circles[0, :, 2])))
         #return True, (well_centerx, well_centery, 110)
 
 
     else:
         well_centerx = 240
         well_centery = 240
-        well_radius = 110
+        well_radius = 195
         #return False, (240, 240, 110)
 
     # first rough mask for well detection

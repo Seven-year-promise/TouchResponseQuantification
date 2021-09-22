@@ -3,10 +3,10 @@ import sys
 from tensorflow.python.tools import freeze_graph
 
 sys.path.append('../..')
-from Methods.UNet_tf.util import *
+from Methods.Wellplate_6.util import *
 import time
 from datetime import timedelta
-from Methods.UNet_tf.data import *
+from Methods.Wellplate_6.data import *
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -363,6 +363,7 @@ class UNet(object):
             x_gray = cv2.cvtColor(x_copy, cv2.COLOR_BGR2GRAY)
             _, (well_x, well_y, _), im_well = well_detection(x_copy, x_gray)
             im_well = cv2.cvtColor(im_well, cv2.COLOR_BGR2GRAY)
+
             if well_x < 240:
                 x_d_edge = well_x
             else:
@@ -375,6 +376,7 @@ class UNet(object):
                 d_edge = y_d_edge
             else:
                 d_edge = x_d_edge
+
             x_min = int(well_x - d_edge)
             x_max = int(well_x + d_edge)
             y_min = int(well_y - d_edge)
@@ -382,7 +384,7 @@ class UNet(object):
             x_copy_block = im_well[y_min:y_max, x_min:x_max]
             y_copy_block0 = y_copy0[y_min:y_max, x_min:x_max]
             y_copy_block1 = y_copy1[y_min:y_max, x_min:x_max]
-
+            #cv2.imshow("im_well", x_copy_block)
             if random_rotate:
                 x_cv_gray, y_cv0_gray, y_cv1_gray = self.random_rotate(x_copy_block, y_copy_block0, y_copy_block1)
             else:
@@ -393,7 +395,8 @@ class UNet(object):
             x_min = int(d_edge - im_size / 2)
             x_max = int(d_edge + im_size / 2)
             y_min = int(d_edge - im_size / 2)
-            y_max = int(d_edge+ im_size / 2)
+            y_max = int(d_edge + im_size / 2)
+            #print(d_edge, y_min, y_max, x_min, x_max)
             x_block = x_cv_gray[y_min:y_max, x_min:x_max]
 
             if contrast:
@@ -449,7 +452,7 @@ class UNet(object):
 
 
             x, y = self.sess.run([images, labels])
-            x, y = self.augmentation(240, x, y, random_rotate = self.conf.rotation, contrast = self.conf.contrast, noise = self.conf.noise)
+            x, y = self.augmentation(self.conf.im_size, x, y, random_rotate = self.conf.rotation, contrast = self.conf.contrast, noise = self.conf.noise)
             # summary
             #show = np.array(y[0, :, :, 1]*255, dtype = np.uint8)
             #cv2.imshow("show", show)

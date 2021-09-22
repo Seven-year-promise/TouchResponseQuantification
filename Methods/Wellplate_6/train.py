@@ -1,7 +1,7 @@
 import tensorflow as tf
 import sys
 sys.path.append('../..')
-from Methods.UNet_tf.UNet import *
+from Methods.Wellplate_6.UNet import *
 
 
 def configure():
@@ -23,7 +23,7 @@ def configure():
     flags.DEFINE_boolean('contrast', False, 'augmentation: random contrast')
     flags.DEFINE_boolean('noise', False, 'augmentation: random gaussian noise')
     flags.DEFINE_integer('ori_size', 480, 'the sie of input image')
-    flags.DEFINE_integer('im_size', 240, 'the sie of training image')
+    flags.DEFINE_integer('im_size', 400, 'the sie of training image')
     flags.DEFINE_float('bce_weight', 0.5, 'weight for loss')
 
     flags.FLAGS.__dict__['__parsed'] = False

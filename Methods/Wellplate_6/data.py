@@ -4,7 +4,7 @@ import os
 import numpy as np
 import cv2
 
-FILE_NAME = [""] #,"01202","01203","01204","01205"]
+FILE_NAME = ["5", "6", "7", "8", "9", "10"] #,"01202","01203","01204","01205"]
 def create_record(data_path, im_size, records_path):
     writer = tf.io.TFRecordWriter(records_path)
     base_im_path = data_path + 'Images/'
@@ -19,8 +19,7 @@ def create_record(data_path, im_size, records_path):
             name = im_name[:-4]
             img = cv2.imread(train_im_path + im_name)
             #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-            '''
+            #print(train_anno_path + name + "_label.tif")
             anno = cv2.imread(train_anno_path + name + "_label.tif")
             # anno = cv2.erode(anno, (3, 3), iterations=2)
             anno = anno[:, :, 1]
@@ -28,14 +27,6 @@ def create_record(data_path, im_size, records_path):
             anno_needle[np.where(anno == 1)] = 1
             anno_fish = np.zeros(anno.shape, dtype=np.uint8)
             anno_fish[np.where(anno == 2)] = 1
-            '''
-            anno_needle = cv2.imread(train_anno_path + name + "_label_1.tif")
-            # anno = cv2.erode(anno, (3, 3), iterations=2)
-            anno_needle = anno_needle[:, :, 1]
-
-            anno_fish = cv2.imread(train_anno_path + name + "_label_2.tif")
-            # anno = cv2.erode(anno, (3, 3), iterations=2)
-            anno_fish = anno_fish[:, :, 1]
 
             anno_together = np.zeros((im_size, im_size, 2), dtype=np.uint8)
             anno_together[:, :, 0] = anno_needle
@@ -103,7 +94,7 @@ def read_record(filename, im_size, batch_size):
 
 
 if __name__ == '__main__':
-    if not os.path.exists('./data/train/train.tfrecords'):
-        create_record('data/train/', 480, './data/train/train.tfrecords')
+    if not os.path.exists('./data/test/test.tfrecords'):
+        create_record('data/test/', 480, './data/test/test.tfrecords')
     else:
         print('TFRecords already exists!')

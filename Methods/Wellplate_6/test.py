@@ -4,7 +4,7 @@ from skimage.morphology import skeletonize
 import math
 
 import tensorflow as tf
-from Methods.UNet_tf.UNet import *
+from Methods.Wellplate_6.UNet import *
 DEBUG = True
 
 def configure():

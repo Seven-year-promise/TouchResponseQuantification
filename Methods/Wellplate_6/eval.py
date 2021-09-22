@@ -7,10 +7,10 @@ Evaluation for image segmentation.
 import numpy as np
 import time
 import os
-from Methods.UNet_tf.test import UNetTestTF
+from Methods.Wellplate_6.test import UNetTestTF
 import cv2
 from Methods.FeatureExtraction import Binarization
-from Methods.ImageProcessing import well_detection
+#from Methods.ImageProcessing import well_detection
 
 import matplotlib.pyplot as plt
 
