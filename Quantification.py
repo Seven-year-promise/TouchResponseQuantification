@@ -65,8 +65,8 @@ SAVE_VIDEO = False
 SHOW = False
 SAVE_X_MIN = 100
 SAVE_X_MAX = 380
-SAVE_Y_MIN = 100
-SAVE_Y_MAX = 380
+SAVE_Y_MIN = 120
+SAVE_Y_MAX = 400
 
 def get_iou(blobA, blobB, ori_shape):
     maskA = np.zeros(ori_shape, np.uint8)
@@ -257,7 +257,7 @@ class BehaviorQuantify:
             blur = cv2.medianBlur(frame, 5)
             binary = self.RG.regionGrowLocalApply(blur,
                                                   [Point(x_ave, y_ave)], # Point (x, y)
-                                                  diff_thre=100,
+                                                  grad_thre=100,
                                                   binary_high_thre=220,
                                                   binary_low_thre=50,
                                                   size_thre=200)
@@ -304,8 +304,8 @@ class BehaviorQuantify:
             fblobs.append(blob)
             tuned_binary[blob[:, 0], blob[:, 1]] = 1
 
-        cv2.imshow("local", tuned_binary*255)
-        cv2.waitKey(1)
+        #cv2.imshow("local", tuned_binary*255)
+        #cv2.waitKey(1)
 
         return tuned_binary, larva_patches, fblobs, tuned_points
 
@@ -337,8 +337,8 @@ class BehaviorQuantify:
         for im in self.video[1:]:
             id_im += 1
             new_gray = self.preprocessing(im, strong=True)
-            cv2.imshow("well", new_gray)
-            cv2.waitKey(1)
+            #cv2.imshow("well", new_gray)
+            #cv2.waitKey(1)
             im_with_pars = im.copy()
             draw_particles(im_with_pars, self.larva_tracker2.new_particles)
             needle_point = self.needle_tracker.track(old_gray, new_gray)
@@ -508,10 +508,10 @@ class BehaviorQuantify:
 
 if __name__ == '__main__':
     behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models_update/UNet14000.pb")
-    base_path = "./demo_videos/"
-    date = ["20210129/"] #["20210522-4compounds/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
-    capacity = ["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
-    touching_part = ["body/"]
+    base_path = "Multi-fish_experiments/"
+    date = ["20210522-4compounds/"] #["20210129/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
+    capacity = ["Caffine/"]#, "Saha/", "Control/", "Dia/", "DMSO/", "Iso/"] #["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
+    touching_part = [""]
     save_path = "./tracking_saved/"
     quantification_result_path = "./QuantificationResults/"
     for d in date:
@@ -536,8 +536,8 @@ if __name__ == '__main__':
                         video_cnt += 1
                         print("NO.", video_cnt, this_path + f)
                         video_path = this_path + f
-                        #f = "WT_114643_Speed25.avi"
-                        #video_path = "./Methods/Multi-fish_experiments/20210522-4compounds/Iso/WT_114643_Speed25.avi"
+                        #f = "WT_101528_Speed25.avi"
+                        #video_path = "./Multi-fish_experiments/20210522-4compounds/Control/WT_101528_Speed25.avi"
                         video = []
                         cap = cv2.VideoCapture(video_path)
                         success, frame = cap.read()

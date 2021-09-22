@@ -72,7 +72,7 @@ class RegionGrow:
 
         return [Point(new_x, new_y)]
 
-    def regionGrowLocalApply(self, img, seeds, diff_thre, binary_high_thre, binary_low_thre, size_thre, p=1):
+    def regionGrowLocalApply(self, img, seeds, grad_thre, binary_high_thre, binary_low_thre, size_thre, p=1):
         if img[seeds[0].y, seeds[0].x] > binary_high_thre or img[seeds[0].y, seeds[0].x] < binary_low_thre:
             seeds = self.serach_init_point(img, seeds[0].x, seeds[0].y, binary_high_thre, binary_low_thre)
         height, width = img.shape
@@ -93,7 +93,7 @@ class RegionGrow:
                     continue
                 grayDiff = self.getGrayDiff(img, currentPoint, Point(tmpX, tmpY))
                 grayOri = img[tmpY, tmpX]
-                if seedMark[tmpY, tmpX] == 0 and grayOri < binary_high_thre and grayOri > binary_low_thre and grayDiff < diff_thre: # and
+                if seedMark[tmpY, tmpX] == 0 and grayOri < binary_high_thre and grayOri > binary_low_thre and grayDiff < grad_thre: # and
                     size += 1
                     seedMark[tmpY, tmpX] = 255
                     seedList.append(Point(tmpX, tmpY))

@@ -8,12 +8,12 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-base_path = ["./20210522-4compounds/Control/",
-             "./20210522-4compounds/DMSO/",
-             "./20210522-4compounds/Dia/",
-             "./20210522-4compounds/Iso/",
-             "./20210522-4compounds/Caffine/",
-             "./20210522-4compounds/Saha/"]
+base_path = ["./20210522-4compounds/used_CI/Control/",
+             "./20210522-4compounds/used_CI/DMSO/",
+             "./20210522-4compounds/used_CI/Dia/",
+             "./20210522-4compounds/used_CI/Iso/",
+             "./20210522-4compounds/used_CI/Caffine/",
+             "./20210522-4compounds/used_CI/Saha/"]
 # all paths:
 quatification = "quantification.csv"
 index = ["t_l", "c_m", "cpt", "t_r", "d_m"]
@@ -106,12 +106,18 @@ for path in base_path:
 
 
 green_diamond = dict(markerfacecolor='y', marker='D')
-
+"""
 ylabels = ["Latency Times (s)",
            "C-Bend Curvature Maximum",
            "C-Bend Curvature Peak Time",
            "Response Time (s)",
            "Moving Distance (pixels)"]
+"""
+ylabels = ["$t_l (s)$",
+           "$c_m$",
+           "$t_{cp} (s)$",
+           "$t_r (s)$",
+           "$d_m (pixels)$"]
 titles = ["Result of Latency Time \nof the Larvae in Different Ages With Body Touched",
           "Result of C-Bend Radius \nof the Larva in Different Ages With Body Touched",
           "Result of Response Time \nof the Larva in Different Ages With Body Touched",
@@ -125,14 +131,17 @@ colors = [[0.1843, 0.3098, 0.3098],
 colors = ["tab:blue", "tab:green",  "tab:purple", "tab:brown", "tab:pink", "tab:olive"]
 # ========================================
 x = [1, 2, 3, 4, 5]
-labels = ["Wild", "DMSO", "Dia", "Iso", "Caffine", "Saha"]
+labels = ["$Wild$", "$DMSO$", "$Dia$", "$Iso$", "$Caffi$", "$Saha$"]
 boxes1 = plt.boxplot(data_all, labels = labels, positions = [0, 1, 2, 3, 4, 5], widths = 0.8, patch_artist=True,
                      showfliers=True)
 #plt.errorbar(labels, means,yerr=stds, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 for box, color in zip(boxes1['boxes'], colors):
     box.set(facecolor = color)
 
-plt.ylabel(ylabels[I], fontsize=12)
+plt.ylabel(ylabels[I], fontsize=14, fontname = "Arial")
+plt.xticks(fontsize=14, fontname = "Arial")
+plt.yticks(fontsize=14, fontname = "Arial")
+#plt.yticks(fontsize=12, fontname = "Times New Roman")
 # ========================================
 #labels = ['54', '54.5', '55', '55.5', '56', '56.5']
 # boxes2 = plt.boxplot(body_data, labels = labels, positions = [7, 8, 9, 10, 11], widths = 0.8, patch_artist=True, showfliers=True)
