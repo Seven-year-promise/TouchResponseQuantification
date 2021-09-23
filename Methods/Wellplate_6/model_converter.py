@@ -99,6 +99,6 @@ if __name__ == '__main__':
 '''
 if __name__ == '__main__':
 
-    model_dir = "./ori_UNet/models_update/"
-    model_freeze(pbtxt_filepath = model_dir + "UNet" + str(14000) + ".pbtxt", ckpt_filepath = model_dir + "UNet.ckpt-" + str(14000), pb_filepath = model_dir + "UNet" + str(14000) + ".pb")
+    model_dir = "./models/"
+    model_freeze(pbtxt_filepath = model_dir + "UNet" + str(30000) + ".pbtxt", ckpt_filepath = model_dir + "UNet.ckpt-" + str(30000), pb_filepath = model_dir + "UNet" + str(30000) + ".pb")
             #freeze_graph(args.checkpoint_path, args.output_nodes, args.output_graph, args.rename_outputs)
