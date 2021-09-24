@@ -339,10 +339,11 @@ class UNet(object):
         return x_cv_gray, y_cv0_gray, y_cv1_gray
 
     def contrast_brightness(self, x):
-        alpha = np.random.random(1)[0]
-        beta = np.random.randint(0, 50)
+        alpha = np.random.normal(0, 0.005, 1)[0] + 1.0
+        #print(alpha)
+        beta = np.random.randint(0, 10)
 
-        return alpha * x + beta
+        return np.array(alpha * x + beta, np.uint8) #
 
     def gaussian_noise(self, x):
         gaussian_noise = x.copy()
