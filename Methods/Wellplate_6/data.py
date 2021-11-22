@@ -7,8 +7,8 @@ import cv2
 FILE_NAME = ["5", "6", "7", "8", "9", "10"] #,"01202","01203","01204","01205"]
 def create_record(data_path, im_size, records_path):
     writer = tf.io.TFRecordWriter(records_path)
-    base_im_path = data_path + 'Images/'
-    base_anno_path = data_path + "annotation/"
+    base_im_path = data_path + '20210827-6-well-dataset_ring12mm/Images/'
+    base_anno_path = data_path + "20210827-6-well-dataset_ring12mm/annotation/"
     for fileN in FILE_NAME:
         train_im_path = base_im_path + fileN + "/"
         train_anno_path = base_anno_path + fileN + "/"
@@ -20,6 +20,42 @@ def create_record(data_path, im_size, records_path):
             img = cv2.imread(train_im_path + im_name)
             #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             #print(train_anno_path + name + "_label.tif")
+            anno = cv2.imread(train_anno_path + name + "_label.tif")
+            # anno = cv2.erode(anno, (3, 3), iterations=2)
+            anno = anno[:, :, 1]
+            anno_needle = np.zeros((im_size, im_size), dtype=np.uint8)
+            anno_needle[np.where(anno == 1)] = 1
+            anno_fish = np.zeros(anno.shape, dtype=np.uint8)
+            anno_fish[np.where(anno == 2)] = 1
+
+            anno_together = np.zeros((im_size, im_size, 2), dtype=np.uint8)
+            anno_together[:, :, 0] = anno_needle
+            anno_together[:, :, 1] = anno_fish
+
+            img_raw = img.tobytes()
+            label_raw = anno_together.tobytes()
+            example = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'label': tf.train.Feature(bytes_list=tf.train.BytesList(value=[label_raw])),
+                        'img': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_raw]))
+                    }
+                )
+            )
+            writer.write(example.SerializeToString())
+    base_im_path = data_path + '20210924-6well-touching_all-12mm/Images/'
+    base_anno_path = data_path + "20210924-6well-touching_all-12mm/annotation/"
+    for fileN in FILE_NAME[:3]:
+        train_im_path = base_im_path + fileN + "/"
+        train_anno_path = base_anno_path + fileN + "/"
+        ims_name = os.listdir(train_im_path)
+        annos_name = os.listdir(train_anno_path)
+        im_anno_list = []
+        for im_name in ims_name:
+            name = im_name[:-4]
+            img = cv2.imread(train_im_path + im_name)
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # print(train_anno_path + name + "_label.tif")
             anno = cv2.imread(train_anno_path + name + "_label.tif")
             # anno = cv2.erode(anno, (3, 3), iterations=2)
             anno = anno[:, :, 1]
@@ -94,7 +130,7 @@ def read_record(filename, im_size, batch_size):
 
 
 if __name__ == '__main__':
-    if not os.path.exists('./data/test/test.tfrecords'):
-        create_record('data/test/', 480, './data/test/test.tfrecords')
+    if not os.path.exists('./data/train_for_systems/train.tfrecords'):
+        create_record('data/train_for_systems/', 480, './data/train_for_systems/train.tfrecords')
     else:
         print('TFRecords already exists!')
