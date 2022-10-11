@@ -8,6 +8,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from Methods.RegionGrowing import Point, RegionGrow
 from Methods.QuantificationIndex import QuantificationIndex
+import config
 
 COLORS = [[133, 145, 220],
           [50, 145, 100],
@@ -507,13 +508,14 @@ class BehaviorQuantify:
             return t_l, c_m, cpt, t_r, d_m
 
 if __name__ == '__main__':
-    behav_quantify = BehaviorQuantify((480, 480), model_path="./Methods/UNet_tf/ori_UNet/models_update/UNet14000.pb")
-    base_path = "Multi-fish_experiments/"
-    date = ["20210522-4compounds/"] #["20210129/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
-    capacity = ["Caffine/"]#, "Saha/", "Control/", "Dia/", "DMSO/", "Iso/"] #["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
-    touching_part = [""]
-    save_path = "./tracking_saved/"
-    quantification_result_path = "./QuantificationResults/"
+    behav_quantify = BehaviorQuantify((480, 480), model_path=config.UNET_MODEL_PATH)
+    base_path = config.QUANTIFY_DATA_PATH
+    all_video_paths =
+    #date = ["20210522-4compounds/"] #["20210129/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
+    #capacity = ["Caffine/"]#, "Saha/", "Control/", "Dia/", "DMSO/", "Iso/"] #["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
+    #touching_part = [""]
+    save_path = config.TRACKING_SAVE_PATH
+    quantification_result_path = config.QUANTIFY_SAVE_PATH
     for d in date:
         for c in capacity:
             for p in touching_part:
