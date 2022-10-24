@@ -508,9 +508,38 @@ class BehaviorQuantify:
             return t_l, c_m, cpt, t_r, d_m
 
 if __name__ == '__main__':
-    behav_quantify = BehaviorQuantify((480, 480), model_path=config.UNET_MODEL_PATH)
+    behav_quantify = BehaviorQuantify((480, 480), model_path=str(config.UNET_MODEL_PATH))
     base_path = config.QUANTIFY_DATA_PATH
-    all_video_paths =
+    all_video_paths = base_path.rglob("*.avi")
+    #print(all_video_paths)
+    with open(config.QUANTIFY_SAVE_PATH / "hts_quantification.csv", "a+", newline='') as f:
+        valwriter = csv.writer(f, delimiter=';',
+                               quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        valwriter.writerow(["compound", "video_path", "t_l", "c_m", "cpt", "t_r", "d_m"])
+    for v_p in all_video_paths:
+        print(v_p)
+        video = []
+        cap = cv2.VideoCapture(str(v_p))
+        success, frame = cap.read()
+        while success:
+            video.append(frame)
+            success, frame = cap.read()
+        cap.release()
+
+        begin_time = time.clock()
+        behav_quantify.load_video(video)
+        behav_quantify.quantification_init()
+        t_l, c_m, cpt, t_r, d_m = behav_quantify.quantify(save_path=config.QUANTIFY_SAVE_PATH, video_name=v_p.name)
+        end_time = time.clock()
+        ave_time = (end_time - begin_time) / len(video)
+        print("average time", ave_time)
+        # for saving the quantification
+        with open(config.QUANTIFY_SAVE_PATH / "hts_quantification.csv", "a+", newline='') as f:
+            valwriter = csv.writer(f, delimiter=';',
+                                   quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            valwriter.writerow([v_p.parent.name, v_p.name, t_l, c_m, cpt, t_r, d_m])
+
+    """
     #date = ["20210522-4compounds/"] #["20210129/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
     #capacity = ["Caffine/"]#, "Saha/", "Control/", "Dia/", "DMSO/", "Iso/"] #["4/"]# ["1control/", "2blue/", "3green/", "4yellow/", "5red/",  ["Caffine/", "Saha/"] #"Control/", "Dia/", "DMSO/", "Iso/",
     #touching_part = [""]
@@ -567,3 +596,4 @@ if __name__ == '__main__':
                 result_csv_file.close()
 
     cv2.destroyAllWindows()
+    """

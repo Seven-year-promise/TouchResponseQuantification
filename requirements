@@ -22,3 +22,4 @@ python-utils == 2.4.0
 torchvision == 0.8.2
 scikit-image == 0.18.1
 tensorflow-gpu == 1.15.0
+#wie /srv/yanke/ve_torch20200615

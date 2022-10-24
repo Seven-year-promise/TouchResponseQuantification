@@ -112,7 +112,7 @@ def well_detection_strong(im, gray, threshold = 50):
     kernel = np.ones((100, 100), dtype=np.uint8)
     closing = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
     kernel = np.ones((55, 55), dtype=np.uint8)
-    median = cv2.cv2.medianBlur(closing, 55)
+    median = cv2.medianBlur(closing, 55)
     #cv2.imshow("opening", median)
     #cv2.waitKey(1000)
     im_median = cv2.bitwise_and(im, im, mask=median)
