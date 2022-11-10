@@ -511,6 +511,7 @@ if __name__ == '__main__':
     behav_quantify = BehaviorQuantify((480, 480), model_path=str(config.UNET_MODEL_PATH))
     base_path = config.QUANTIFY_DATA_PATH
     all_video_paths = base_path.rglob("*.avi")
+
     #print(all_video_paths)
     with open(config.QUANTIFY_SAVE_PATH / "hts_quantification.csv", "a+", newline='') as f:
         valwriter = csv.writer(f, delimiter=';',
@@ -538,6 +539,7 @@ if __name__ == '__main__':
             valwriter = csv.writer(f, delimiter=';',
                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
             valwriter.writerow([v_p.parent.name, v_p.name, t_l, c_m, cpt, t_r, d_m])
+        cv2.destroyAllWindows()
 
     """
     #date = ["20210522-4compounds/"] #["20210129/"]#["20210414/", "20210415-1/", "20210415-2/", "20210416-1/", "20210416-2/"]
