@@ -8,9 +8,9 @@ from skimage.feature import hog
 from skimage.morphology import skeletonize
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--video_path', type=str, default = './first_frames/20210827-6-well-dataset_ring12mm/10/',
+parser.add_argument('--video_path', type=str, default = './first_frames/20210924-6well-touching_all-12mm/7/',
                    help='sum the integers (default: find the max)')
-parser.add_argument('--save_path', type=str, default = './first_frames/1/20210827-6-well-dataset_ring12mm/10/',
+parser.add_argument('--save_path', type=str, default = './first_frames/1/20210924-6well-touching_all-12mm/7/',
                    help='sum the integers (default: find the max)')
 args = parser.parse_args()
 

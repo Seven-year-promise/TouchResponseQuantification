@@ -7,6 +7,8 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
+a_I = 0
+
 base_path = ["./data/behaviors_result07291500body/",
              "./data/behaviors_result07301500normalbody/",
              "./data/behaviors_result07311500body/"]
@@ -144,10 +146,16 @@ for I in range(4):
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 
-ylabels = ["Latency Times (s)",
-           "C-Bend Radius Average (pixels)",
-           "Response Time (s)",
-           "Moving Distance (pixels)"]
+"""
+ylabels = ["Latency time (s)",
+           "C-Bend radius average (pixels)",
+           "Response time (s)",
+           "Moving distance (pixels)"]
+"""
+ylabels = ["$t_l$ (s)",
+           "$r_a$ (pixels)",
+           "$t_r$ (s)",
+           "$d_m$ (pixels)"]
 titles = ["Result of Latency Time \nof the Larva in Different Ages With Body Touched",
           "Result of C-Bend Radius \nof the Larva in Different Ages With Body Touched",
           "Result of Response Time \nof the Larva in Different Ages With Body Touched",
@@ -168,7 +176,7 @@ x = [1, 2, 3, 4, 5]
 
 # ========================================
 labels = ['30 hpf', '54 hpf', '78 hpf']
-plt.figure(figsize=(4,4))
+plt.figure(figsize=(5,4))
 # boxes2 = plt.boxplot(body_data, labels = labels, positions = [7, 8, 9, 10, 11], widths = 0.8, patch_artist=True, showfliers=True)
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
@@ -176,41 +184,45 @@ plt.figure(figsize=(4,4))
 
 #plt.subplot(221)
 
-plt.errorbar(labels, body_mean[0:3], yerr=body_std[0:3],  marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
-plt.grid(b=True, which="both", axis="both")
-# plt.ylabel(ylabels[0], fontsize=8)
+if a_I == 0:
+    plt.errorbar(labels, body_mean[0:3], yerr=body_std[0:3],  marker="^", lw=2, c='black', elinewidth=1, ms=7, capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    # plt.ylabel(ylabels[0], fontsize=8)
 
-plt.xticks(fontsize=14, fontname = "Times New Roman", )
-plt.yticks(fontsize=13, fontname = "Times New Roman")
-plt.title(ylabels[0], fontname = "Times New Roman", fontsize=14)
-"""
-plt.subplot(222)
+    plt.xticks(fontsize=14, fontname = "Arial", )
+    plt.yticks(fontsize=13, fontname = "Arial")
+    plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
 
-plt.errorbar(labels, body_mean[3:6], yerr=body_std[3:6], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
-plt.grid(b=True, which="both", axis="both")
-# plt.ylabel(ylabels[0], fontsize=8)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
+    #plt.subplot(222)
 
-plt.subplot(223)
+elif a_I == 1:
+    plt.errorbar(labels, body_mean[3:6], yerr=body_std[3:6], marker="^", lw=2, c='black', elinewidth=1, ms=7, capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    # plt.ylabel(ylabels[0], fontsize=8)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
 
-plt.errorbar(labels, body_mean[6:9], yerr=body_std[6:9], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
-plt.grid(b=True, which="both", axis="both")
-# plt.ylabel(ylabels[0], fontsize=8)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
+    #plt.subplot(223)
+elif a_I == 2:
+    plt.errorbar(labels, body_mean[6:9], yerr=body_std[6:9], marker="^", lw=2, c='black', elinewidth=1, ms=7, capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    # plt.ylabel(ylabels[0], fontsize=8)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
 
-plt.subplot(224)
+    #plt.subplot(224)
+elif a_I == 3:
+    plt.errorbar(labels, body_mean[9:12], yerr=body_std[9:12], marker="^", lw=2, c='black', elinewidth=1, ms=7, capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    # plt.ylabel(ylabels[0], fontsize=8)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
+else:
+    raise NotADirectoryError
 
-plt.errorbar(labels, body_mean[9:12], yerr=body_std[9:12], marker="^", lw=2, c='blue', elinewidth=1, ms=7, capsize=3)
-plt.grid(b=True, which="both", axis="both")
-# plt.ylabel(ylabels[0], fontsize=8)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[3], fontname = "Times New Roman", fontsize=14)
-"""
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
 # boxes3 = plt.boxplot(tail_data, labels = labels, positions = [13, 14, 15, 16, 17], widths = 0.8, patch_artist=True, showfliers=True)
@@ -250,5 +262,6 @@ for i in [1,2,3]:
 # plt.ylabel(ylabels[I])
 
 # plt.title(titles[I])
+plt.tight_layout()
 plt.show()
 
