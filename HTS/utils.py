@@ -42,7 +42,7 @@ def read_actions(action_path):
 
 def get_key(dict, value):
     for k, v in dict.items():
-        print(value, v, k)
+        #print(value, v, k)
         if value in v:
             return k
     return "None"
