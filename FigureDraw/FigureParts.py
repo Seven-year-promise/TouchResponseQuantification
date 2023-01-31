@@ -7,6 +7,8 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
+p_I = 0
+
 base_path = ["./data/behaviors_result07301500normal_all/"]
 
 touching_part = ["head/",
@@ -121,11 +123,16 @@ for I in range(4):
     max_value = np.max(max_values)
 
 green_diamond = dict(markerfacecolor='y', marker='D')
-
-ylabels = ["Latency Time (s)",
-           "C-Bend Radius Average (pixels)",
-           "Response Time (s)",
-           "Moving Distance (pixels)"]
+"""
+ylabels = ["Latency time (s)",
+           "C-Bend radius average (pixels)",
+           "Response time (s)",
+           "Moving distance (pixels)"]
+"""
+ylabels = ["$t_l$ (s)",
+           "$r_a$ (pixels)",
+           "$t_r$ (s)",
+           "$d_m$ (pixels)"]
 titles = ["Result of Latency Time \nof the Larva with Different Parts touched",
           "Result of C-Bend Radius \nof the Larva with Different Parts touched",
           "Result of Response Time \nof the Larva with Different Parts touched",
@@ -141,7 +148,7 @@ plot_data.append(body_data)
 plot_data.append(tail_data)
 plot_data = np.array(plot_data)
 labels = [['head'], ['body'], ['tail']]
-plt.figure(figsize=(4,4))
+plt.figure(figsize=(5,4))
 
 #plt.subplot(221)
 """
@@ -173,7 +180,7 @@ plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
 
 plt.subplot(223)
 """
-boxes3 = plt.boxplot([head_data[2].tolist(), body_data[2].tolist(), tail_data[2].tolist()],
+boxes3 = plt.boxplot([head_data[p_I].tolist(), body_data[p_I].tolist(), tail_data[p_I].tolist()],
                      labels=['Head', 'Body', 'Tail'], widths=0.5, positions=[7, 8, 9], patch_artist=True,
                      showfliers=True, showmeans=True)
 for box, color in zip(boxes3['boxes'], colors):
@@ -181,9 +188,9 @@ for box, color in zip(boxes3['boxes'], colors):
 plt.grid(b=True, which="both", axis="both")
 # plt.ylabel(ylabels[2], fontsize=8)
 # plt.title(titles[2])
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
+plt.xticks(fontsize=14, fontname = "Arial")
+plt.yticks(fontsize=14, fontname = "Arial")
+plt.ylabel(ylabels[p_I], fontname = "Arial", fontsize=14)
 """
 plt.subplot(224)
 
@@ -225,6 +232,7 @@ for i in [1,2,3]:
 """
 # plt.xlabel("The fish part touched: 1 Head, 2 Body, 3 Tail")
 
-
+plt.grid(b=None)
+plt.tight_layout()
 plt.show()
 

@@ -7,6 +7,8 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
+t_I = 3
+
 base_path = ["./data/behaviors_result07301500normalbody/",
              "./data/behaviors_result07301530normalbody/",
              "./data/behaviors_result07301600normalbody/",
@@ -135,10 +137,16 @@ for I in range(4):
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 
-ylabels = ["Latency Times (s)",
-           "C-Bend Radius Average (pixels)",
-           "Response Time (s)",
-           "Moving Distance (pixels)"]
+"""
+ylabels = ["Latency time (s)",
+           "C-Bend radius average (pixels)",
+           "Response time (s)",
+           "Moving distance (pixels)"]
+"""
+ylabels = ["$t_l$ (s)",
+           "$r_a$ (pixels)",
+           "$t_r$ (s)",
+           "$d_m$ (pixels)"]
 titles = ["Result of Latency Time \nof the Larva in Different Ages With Body Touched",
           "Result of C-Bend Radius \nof the Larva in Different Ages With Body Touched",
           "Result of Response Time \nof the Larva in Different Ages With Body Touched",
@@ -163,57 +171,60 @@ labels = ['54', '54.5', '55', '55.5', '56', '56.5']
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-plt.figure(figsize=(4,4))
+plt.figure(figsize=(5,4))
 #plt.subplot(221)
-"""
-plt.errorbar(labels, normal_mean[0:6], yerr=normal_std[0:6], lw=2, marker="^", c='blue', elinewidth=1, ms=7, capsize=3)
-plt.errorbar(labels, treated_mean[0:6], yerr=treated_std[0:6], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
-             capsize=3)
-plt.grid(b=True, which="both", axis="both")
-#plt.ylabel(ylabels[0], fontsize=12)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[0], fontname = "Times New Roman", fontsize=14)
+
+if t_I == 0:
+    plt.errorbar(labels, normal_mean[0:6], yerr=normal_std[0:6], lw=2, marker="^", c='#8ECFC9', elinewidth=1, ms=7, capsize=3)
+    plt.errorbar(labels, treated_mean[0:6], yerr=treated_std[0:6], marker="o", lw=2, c='#FA7F6F', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    #plt.ylabel(ylabels[0], fontsize=12)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
 
 
-plt.subplot(222)
+    #plt.subplot(222)
+elif t_I == 1:
+    plt.errorbar(labels, normal_mean[6:12], yerr=normal_std[6:12], lw=2, marker="^", c='#8ECFC9', elinewidth=1, ms=7, capsize=3)
+    plt.errorbar(labels, treated_mean[6:12], yerr=treated_std[6:12], marker="o", lw=2, c='#FA7F6F', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    #plt.ylabel(ylabels[1], fontsize=12)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
 
-plt.errorbar(labels, normal_mean[6:12], yerr=normal_std[6:12], lw=2, marker="^", c='blue', elinewidth=1, ms=7, capsize=3)
-plt.errorbar(labels, treated_mean[6:12], yerr=treated_std[6:12], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
-             capsize=3)
-plt.grid(b=True, which="both", axis="both")
-#plt.ylabel(ylabels[1], fontsize=12)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[1], fontname = "Times New Roman", fontsize=14)
+    #plt.subplot(223)
+elif t_I == 2:
+    plt.errorbar(labels, normal_mean[12:18], yerr=normal_std[12:18], lw=2, marker="^", c='#8ECFC9', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.errorbar(labels, treated_mean[12:18], yerr=treated_std[12:18], marker="o", lw=2, c='#FA7F6F', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    #plt.ylabel(ylabels[2], fontsize=12)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
 
-plt.subplot(223)
-"""
-plt.errorbar(labels, normal_mean[12:18], yerr=normal_std[12:18], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
-             capsize=3)
-plt.errorbar(labels, treated_mean[12:18], yerr=treated_std[12:18], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
-             capsize=3)
-plt.grid(b=True, which="both", axis="both")
-#plt.ylabel(ylabels[2], fontsize=12)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[2], fontname = "Times New Roman", fontsize=14)
-"""
-plt.subplot(224)
+    #plt.subplot(224)
+elif t_I == 3:
+    plt.errorbar(labels, normal_mean[18:24], yerr=normal_std[18:24], lw=2, marker="^", c='#8ECFC9', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.errorbar(labels, treated_mean[18:24], yerr=treated_std[18:24], marker="o", lw=2, c='#FA7F6F', elinewidth=1, ms=7,
+                 capsize=3)
+    plt.grid(b=True, which="both", axis="both")
+    #plt.ylabel(ylabels[3], fontsize=12)
+    plt.xticks(fontsize=14, fontname = "Arial")
+    plt.yticks(fontsize=14, fontname = "Arial")
+    plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
+else:
+    raise NotImplementedError
 
-plt.errorbar(labels, normal_mean[18:24], yerr=normal_std[18:24], lw=2, marker="^", c='blue', elinewidth=1, ms=7,
-             capsize=3)
-plt.errorbar(labels, treated_mean[18:24], yerr=treated_std[18:24], marker="o", lw=2, c='pink', elinewidth=1, ms=7,
-             capsize=3)
-plt.grid(b=True, which="both", axis="both")
-#plt.ylabel(ylabels[3], fontsize=12)
-plt.xticks(fontsize=14, fontname = "Times New Roman")
-plt.yticks(fontsize=14, fontname = "Times New Roman")
-plt.title(ylabels[3], fontname = "Times New Roman", fontsize=14)
-"""
 
-patch1 = mpatches.Patch(color='blue', label='controls')
-patch2 = mpatches.Patch(color='pink', label='treated larvae')
+patch1 = mpatches.Patch(color='#8ECFC9', label='controls')
+patch2 = mpatches.Patch(color='#FA7F6F', label='treated larvae')
 plt.legend(handles=[patch1, patch2],loc = "upper left")
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']
@@ -251,5 +262,6 @@ for i in [1,2,3]:
 # plt.ylabel(ylabels[I])
 
 # plt.title(titles[I])
+plt.tight_layout()
 plt.show()
 
