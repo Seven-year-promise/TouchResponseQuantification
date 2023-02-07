@@ -10,7 +10,7 @@ import seaborn as sns
 def read_data(path) -> dict:
     csv_files = list(path.rglob("*.csv"))
     all_data = {}
-    print(path)
+    #print(path)
     comp_name = ""
     for c_file in csv_files:
         with open(c_file, newline='') as c_f:
@@ -34,13 +34,15 @@ def compute_distance(data, action_mode):
     WILD_inte = np.array(data["C0"]).reshape(len(data["C0"]), 5)
     for c_name in data.keys():
         c_data = data[c_name]
+        if c_name == "C15":
+            print(c_data)
         if len(c_data)> 0:
             c_data = np.array(c_data).reshape(len(c_data), 5)
             c_action = get_key(action_mode, c_name)
             distance_data = [c_name]
 
             for ph in range(5):
-                dis = compute_prob_distance(WILD_inte[:, ph], c_data[:, ph], algorithm="ave")
+                dis = compute_prob_distance(WILD_inte[:, ph], c_data[:, ph], algorithm="wasserstein_2")
                 # print(dis)
                 distance_data.append(dis)
 
@@ -54,7 +56,7 @@ def hierarchical_clustering(data):
 
     #normalize
     for f_name in data.columns[1:-1]:
-        print(f_name)
+        #print(f_name)
         max_value = data[f_name].max()
         min_value = data[f_name].min()
         data[f_name] = (data[f_name] - min_value) / (max_value - min_value)
@@ -86,5 +88,7 @@ if __name__ == "__main__":
     quan_data = read_data(QUANTIFY_DATA_PATH)
     action_mode = read_actions(ACTION_DATA_PATH)
     distance_data = compute_distance(quan_data, action_mode)
-    hierarchical_clustering(distance_data)
+    distance_data.set_index(['Compound'], drop=True, inplace=True)
+    distance_data.to_csv(DATASET_PATH/'distance.csv')
+    #hierarchical_clustering(distance_data)
     #print(distance_data)

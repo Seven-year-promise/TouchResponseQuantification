@@ -43,10 +43,12 @@ def wasserstein_2_1d(p, q):
     if mu_p > mu_q:
         sign = -1
 
-    c_p = np.cov(p)
-    c_q = np.cov(q)
-
-    return sign*((mu_p-mu_q)**2 + c_p + c_q -2*np.sqrt(np.sqrt(c_q)*c_p*np.sqrt(c_q)))
+    if len(p) <2 or len(q) < 2:
+        return sign*((mu_p-mu_q)**2)
+    else:
+        c_p = np.cov(p)
+        c_q = np.cov(q)
+        return sign*((mu_p-mu_q)**2 + c_p + c_q -2*np.sqrt(np.sqrt(c_q)*c_p*np.sqrt(c_q)))
 
 def compute_prob_distance(p, q, algorithm=""):
     p_pdf = stats.norm.ppf(p)
