@@ -28,7 +28,10 @@ quatification = ["Latency_time.txt",
                  "C_Shape_radius.txt",
                  "Response_time.txt",
                  "Moving_distance.txt"]
-
+Fig_save_path = ["./figure_results/Est_t_l.png",
+                 "./figure_results/Est_r_a.png",
+                 "./figure_results/Est_t_r.png",
+                 "./figure_results/Est_d_m.png"]
 
 def outlier_detection(X):
     X = np.array(X)
@@ -259,9 +262,9 @@ for i in [1,2,3]:
 """
 # plt.xlabel("The fish part touched: 1 Head, 2 Body, 3 Tail")
 
-# plt.ylabel(ylabels[I])
+plt.xlabel("(hpf)", fontsize=14, fontname = "Arial")
 
 # plt.title(titles[I])
 plt.tight_layout()
-plt.show()
+plt.savefig(Fig_save_path[t_I], format='png')
 
