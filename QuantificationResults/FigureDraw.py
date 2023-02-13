@@ -17,7 +17,7 @@ base_path = ["./20210522-4compounds/used_CI/Control/",
 # all paths:
 quatification = "quantification.csv"
 index = ["t_l", "c_m", "cpt", "t_r", "d_m"]
-I = 4
+I = 0
 
 def outlier_detection(X):
     X = np.array(X)
@@ -138,9 +138,9 @@ boxes1 = plt.boxplot(data_all, labels = labels, positions = [0, 1, 2, 3, 4, 5], 
 for box, color in zip(boxes1['boxes'], colors):
     box.set(facecolor = color)
 
-plt.ylabel(ylabels[I], fontsize=14, fontname = "Arial")
-plt.xticks(fontsize=14, fontname = "Arial")
-plt.yticks(fontsize=14, fontname = "Arial")
+plt.ylabel(ylabels[I], fontsize=18, fontname = "Arial")
+plt.xticks(fontsize=18, fontname = "Arial")
+plt.yticks(fontsize=18, fontname = "Arial")
 #plt.yticks(fontsize=12, fontname = "Times New Roman")
 # ========================================
 #labels = ['54', '54.5', '55', '55.5', '56', '56.5']

@@ -49,8 +49,9 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
     test_labels = test_data['Action']
     test_names = test_data['Compound']
 
+    plt.figure(figsize=(6, 8))
     # normalize
-    for f_name in train_data.columns[1:-1]:
+    for f_name in train_data.columns:
         max_value = train_data[f_name].max()
         min_value = train_data[f_name].min()
         train_data[f_name] = (train_data[f_name] - min_value) / (max_value - min_value)
@@ -58,23 +59,26 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
 
         test_data[f_name] = (test_data[f_name] - min_value) / (max_value - min_value)
         test_data[f_name] = test_data[f_name] * 2 - 1
+        print(f_name, max_value, min_value)
 
     test_data['Compound'] += "_" + test_data['Action']
     test_data.set_index(['Compound'], drop=True, inplace=True)
     test_data = test_data.drop('Action', axis=1)
     test_data.index.name = None
 
+    print(train_data, test_data)
     #test_data.set_index(['Compound'], drop=True, inplace=True)
     #test_data = test_data.drop('Action', axis=1)
     #test_data.index.name = None
 
     eval_metrics = []
-    eval_metrics.append(["thre", "diversity", "error"])
+    eval_metrics.append(["Threshold", "Diversity", "Failures"])
     for thre in range(1,thre_intervel+1):
+        #thre=30
         t = thre/thre_intervel*max_eucli_dis
 
         #print(new_data, new_data.index)
-        B = dendrogram(link, labels=list(train_data.index), color_threshold=t)
+        B = dendrogram(link, labels=list(train_data.index), color_threshold=t, orientation='right')
         #print(B.keys())
         #print(B['leaves_color_list'], B['ivl']) # NOTE  B['ivl']: the ordered leaves,  B['leaves_color_list']: labels
         diversity_h_cluster = eval_tree_diversity(compound_list=B['ivl'], labels=B['leaves_color_list'])
@@ -82,13 +86,15 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
         total_prediction = 0
         correct_pre = 0
         for index, test_d in test_data.T.iteritems():
+            #print(index)
             label = index.split("_")[1]
             dis = (train_data - list(test_d)).pow(2).sum(1).pow(0.5)
             cloest_comp = dis.idxmin()
             preds = prediction_effects(compound_list=B['ivl'], labels=B['leaves_color_list'], cloest_comp=cloest_comp)
+            #print(label, preds, cloest_comp)
             if label in preds:
                 correct_pre += 1
-                print(label, preds)
+
             total_prediction += 1
             #predictions.append(preds)
 
@@ -101,6 +107,14 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
             data_t_dist = pdist(data_t)
             break
         """
+        #plt.xticks([])
+        #plt.yticks(fontsize=10)
+        #plt.axvline(x=t, c='black', lw=1, linestyle='dashed')
+        #plt.text(y=7, x=t+0.1, color='black', s='$T_{pr} = 0.3$', fontname="Arial", fontsize=10)
+        #plt.tight_layout()
+
+        #plt.savefig(RESULT_PATH / "tree_with_threshold.eps", dpi=300)
+        #break
     with open(RESULT_PATH / "hts_touch_response_eval_metrics.csv", "w") as save_csv:
         csv_writer = csv.writer(save_csv)
         csv_writer.writerows(eval_metrics)
