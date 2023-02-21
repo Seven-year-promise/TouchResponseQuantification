@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 I = 0
+font_size=18
+font_name="Arial"
 
 def draw_eval_fig():
     model_dir = "./ori_UNet/performance/"
@@ -98,26 +100,30 @@ def draw_eval_fig():
     axs[1, 1].set_ylabel('JI Larva')
     axs[1, 1].set_xlabel("Training Epoch")
     """
-    plt.xlabel("Training Epoch")
+    plt.xlabel("Training Epoch", fontsize=font_size, fontname=font_name)
+    plt.xticks(fontsize=font_size, fontname=font_name)
+    plt.yticks(fontsize=font_size, fontname=font_name)
     if I == 0:
-        plt.ylabel("PC Needle")
+        plt.ylabel("PC (Needle)", fontsize=font_size, fontname=font_name)
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        plt.savefig("./plots/pc_needle.png", format='png')
     elif I == 1:
-        plt.ylabel("JI Needle")
+        plt.ylabel("JI (Needle)", fontsize=font_size, fontname=font_name)
+        plt.legend(loc="upper left")
+        plt.tight_layout()
+        plt.savefig("./plots/ji_needle.png", format='png')
     elif I == 2:
-        plt.ylabel("PC Larva")
+        plt.ylabel("PC (Larva)", fontsize=font_size, fontname=font_name)
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        plt.savefig("./plots/pc_larva.png", format='png')
     else:
-        plt.ylabel("JI Larva")
-    plt.legend(loc = "upper left")
-    """
-    plt.legend(lines_axis00, model_types, 'upper left')
-    
-    fig.legend(lines_axis01, model_types, 'upper left')
-    fig.legend(lines_axis10, model_types, 'upper left')
-    fig.legend(lines_axis11, model_types, 'upper left')
-    """
+        plt.ylabel("JI (Larva)", fontsize=font_size, fontname=font_name)
+        plt.legend(loc="upper left")
+        plt.tight_layout()
+        plt.savefig("./plots/ji_larva.png", format='png')
 
-    #plt.tight_layout()
-    plt.show()
 
 '''
 Exceptions

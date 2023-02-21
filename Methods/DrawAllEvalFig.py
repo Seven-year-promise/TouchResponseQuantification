@@ -67,6 +67,19 @@ def draw_recall_correct_fig():
     plt.tight_layout()
     plt.savefig("./plots/comparison_rp.eps", format='eps')
 
+    plt.clf()
+
+    for correct, recall, l, c in zip(corrects_methods, recalls_methods, labels, COLORS):
+        plt.plot(recall, correct, label=l, color=c)
+
+    plt.xlabel("Ratio of precision ($R_r$)", fontname="Arial", fontsize=18)
+    plt.ylabel("Ratio of recall ($R_p$)", fontname="Arial", fontsize=18)
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
+    plt.legend(loc="upper left")
+    plt.tight_layout()
+    plt.savefig("./plots/comparison_roc.png", format='png')
+
 
 '''
 Exceptions

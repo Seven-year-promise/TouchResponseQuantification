@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 I = 0
-
+font_size=16
+font_name="Arial"
 
 def draw_sie_thre_fig():
     JI_base_path = "./ori_UNet/models-trained-on200-2/size_thre_JI_Larva"
     PC_base_path = "./ori_UNet/models-trained-on200-2/size_thre_PC_Larva"
-    COLORS = ["tab:orange", "tab:olive"]
+    COLORS = ["black", "black"]
     PC = []
     JI = []
     for n in ["20", "40", "60", "80"]:
@@ -24,16 +25,21 @@ def draw_sie_thre_fig():
 
 
     thresholds = np.arange(0, len(JI))
-    plt.plot(thresholds, PC, label = "PC larva for U-Net + RT + CB", color = COLORS[0])
-    plt.text(12, PC[12] + 0.002, '(' + str(12) + ', ' + str(round(PC[12], 3)) +')', fontsize = 10)
+    plt.plot(thresholds, PC, label = "PC larva for U-Net + RT + CB", color = COLORS[0], linestyle="-")
+    plt.text(12, PC[12] + 0.002, '(' + str(12) + ', ' + str(round(PC[12], 3)) +')', fontsize=font_size, fontname=font_name)
     plt.scatter(12, PC[12], marker = "x", color = COLORS[0])
-    plt.plot(thresholds, JI, label="JI larva for U-Net + RT + CB", color = COLORS[1])
-    plt.text(12, JI[12] + 0.002, '(' + str(12) + ', ' + str(round(JI[12], 3)) + ')', fontsize=10)
+    plt.plot(thresholds, JI, label="JI larva for U-Net + RT + CB", color = COLORS[1], linestyle="--")
+    plt.text(12, JI[12] + 0.002, '(' + str(12) + ', ' + str(round(JI[12], 3)) + ')', fontsize=font_size, fontname=font_name)
     plt.scatter(12, JI[12], marker="x", color=COLORS[1])
-    plt.xlabel("Threshold for size based noise filter ($T_s$)")
-    plt.ylabel("JI and PC for larva segmentation")
-    plt.legend(loc="upper right")
-    plt.show()
+    plt.xlabel("Threshold for size based noise filter ($T_s$)", fontsize=font_size, fontname=font_name)
+    plt.ylabel("JI and PC for larva segmentation", fontsize=font_size, fontname=font_name)
+    plt.xticks(fontsize=font_size, fontname=font_name)
+    plt.yticks(fontsize=font_size, fontname=font_name)
+    lgd = plt.legend(loc="upper right")
+    lgd.FontSize = font_size
+    lgd.FontName = font_name
+    plt.tight_layout()
+    plt.savefig("./plots/size_thre_multi.png", format='png')
 
 
 '''
