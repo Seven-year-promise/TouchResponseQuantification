@@ -54,6 +54,8 @@ def draw_recall_correct_fig():
     plt.tight_layout()
     plt.savefig("./plots/comparison_rr.eps", format='eps')
 
+    plt.clf()
+
     for correct, l, c in zip(corrects_methods, labels, COLORS):
         plt.plot(thresholds, correct, label=l, color=c)
     plt.xlabel("Threshold of IOU ($T_{IOU}$)", fontname = "Arial", fontsize=18)
