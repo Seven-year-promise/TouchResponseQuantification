@@ -51,7 +51,7 @@ def draw_recall_correct_fig():
     plt.yticks(fontsize=18, fontname="Arial")
 
     plt.legend(loc="upper right")
-    plt.tight_layout()
+    plt.tight_layout(rect=[0.01, 0.01, 1, 1])
     plt.savefig("./plots/comparison_rr.eps", format='eps')
 
     plt.clf()
@@ -64,9 +64,8 @@ def draw_recall_correct_fig():
     plt.xticks(fontsize=18, fontname="Arial")
     plt.yticks(fontsize=18, fontname="Arial")
     plt.legend(loc="upper right")
-    plt.tight_layout()
+    plt.tight_layout(rect=[0.01, 0.01, 1, 1])
     plt.savefig("./plots/comparison_rp.eps", format='eps')
-
     plt.clf()
 
     for correct, recall, l, c in zip(corrects_methods, recalls_methods, labels, COLORS):
