@@ -73,7 +73,7 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
 
     eval_metrics = []
     eval_metrics.append(["Threshold", "Diversity", "Failures"])
-    for thre in range(1,thre_intervel+1):
+    for thre in range(1,thre_intervel+2):
         #thre=30
         t = thre/thre_intervel*max_eucli_dis
 
@@ -115,9 +115,11 @@ def load_trained_model(link_path, train_data_path, test_data_path, thre_intervel
 
         #plt.savefig(RESULT_PATH / "tree_with_threshold.eps", dpi=300)
         #break
+
     with open(RESULT_PATH / "hts_touch_response_eval_metrics.csv", "w") as save_csv:
         csv_writer = csv.writer(save_csv)
         csv_writer.writerows(eval_metrics)
+
 
 
 

@@ -19,23 +19,23 @@ ax.plot(data.Threshold,
         data.Diversity,
         color= "black",
         linestyle="--",
-        label=r"$N_{ep}$")
+        label=r"$N_{pp}$")
 # set x-axis label
 ax.set_xlabel(r"Threshold of hierarchical clustering ($T_{pr}$)", fontname = "Arial", fontsize = 12)
 # set y-axis label
-ax.set_ylabel(r"Number of effect proposals ($N_{ep}$)", #r"Diversity of drug effect tree ($#TD$)",
+ax.set_ylabel(r"Number of pattern proposals ($N_{pp}$)", #r"Diversity of drug effect tree ($#TD$)",
               fontname = "Arial",
               fontsize=12)
 
 plt.scatter(x=0.3, y=4.4, color="red", s=20)
-plt.text(x = 0.31, y = 4.2, color = 'r', s = '(0.3, 4.4)', fontname = "Arial", fontsize=10)
+plt.text(x = 0.31, y = 4.1, color = 'r', s = '(0.3, 4.4)', fontname = "Arial", fontsize=10)
 
 
 
 ax2=ax.twinx()
 # make a plot with different y-axis using second axis object
 ax2.plot(data.Threshold, data.Failures, color="black", linestyle="-", label=r"$P_f$")
-ax2.set_ylabel(r"Failures of prediction ($P_f$)", fontname = "Arial", fontsize=12)
+ax2.set_ylabel(r"Percentage of failures of pattern prediction ($P_f$)", fontname = "Arial", fontsize=12)
 
 
 plt.axvline(x = 0.3, color = 'r', linestyle=":")
