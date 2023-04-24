@@ -551,8 +551,8 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
     recall_ratios_ring_no_ring = []
     correct_ratios_ring_no_ring = []
     labels = ["Without ring", "With ring"]
-    LINE_TYPES = ['--', '-.']
-    COLORS = ["tab:green", "tab:red"]
+    LINE_TYPES = ['--', '-']
+    COLORS = ["black", "black"]
     for t, im_anno_list in enumerate([no_ring_im_anno_list, ring_im_anno_list]):
         num_im = len(im_anno_list)
         recall_ratios = np.zeros((num_im, num_thre), np.float)
@@ -603,8 +603,8 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
         correct_ratios_ring_no_ring.append(correct_ratios_ave)
 
 
-    axis_font = {'fontname': 'Times New Roman', 'size': '18'}
-    legend_font = font_manager.FontProperties(family='Times New Roman',
+    axis_font = {'fontname': 'Arial', 'size': '18'}
+    legend_font = font_manager.FontProperties(family='Arial',
                                        style='normal', size=18)
 
     for r, l, c, l_t in zip(recall_ratios_ring_no_ring, labels, COLORS, LINE_TYPES):
@@ -612,6 +612,8 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
 
     plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
     plt.ylabel("Ratio of recall ($R_r$)", **axis_font)
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
     plt.ylim((0, 1))
     plt.legend(loc="upper right", prop=legend_font)
     plt.tight_layout()
@@ -622,11 +624,24 @@ def UNet_recall_correct_ratio(no_ring_im_anno_list, ring_im_anno_list, threshold
         plt.plot(thresholds, correct, ls = l_t, label=l, color=c)
     plt.xlabel("Threshold of IOU ($T_{IOU}$)", **axis_font)
     plt.ylabel("Ratio of precision ($R_p$)", **axis_font)
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
     plt.ylim((0, 1))
     plt.legend(loc="upper right", prop=legend_font)
     plt.tight_layout()
     plt.show()
     print("binarization recall and correct ratio, finished")
+
+    for r, correct, l, c, l_t in zip(recall_ratios_ring_no_ring, correct_ratios_ring_no_ring, labels, COLORS, LINE_TYPES):
+        plt.plot(r, correct, ls = l_t, label=l, color=c)
+
+    plt.xlabel("Ratio of precision ($R_r$)", **axis_font)
+    plt.ylabel("Ratio of recall ($R_p$)", **axis_font)
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
+    plt.legend(loc="upper left", prop=legend_font)
+    plt.tight_layout()
+    plt.show()
 
 
 def test_all_JI_PC(no_ring_im_anno_list, ring_im_anno_list):

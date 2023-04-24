@@ -44,21 +44,40 @@ def draw_recall_correct_fig():
     for r, l, c in zip(recalls_methods, labels, COLORS):
         plt.plot(thresholds, r, label=l, color=c)
 
-    plt.xlabel("Threshold of IOU ($T_{IOU}$)")
-    plt.ylabel("Ratio of recall ($R_r$)")
+    plt.xlabel("Threshold of IOU ($T_{IOU}$)", fontname = "Arial", fontsize=18)
+    plt.ylabel("Ratio of recall ($R_r$)", fontname = "Arial", fontsize=18)
+
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
 
     plt.legend(loc="upper right")
-    plt.tight_layout()
-    plt.show()
+    plt.tight_layout(rect=[0.01, 0.01, 1, 1])
+    plt.savefig("./plots/comparison_rr.eps", format='eps')
+
+    plt.clf()
 
     for correct, l, c in zip(corrects_methods, labels, COLORS):
         plt.plot(thresholds, correct, label=l, color=c)
-    plt.xlabel("Threshold of IOU ($T_{IOU}$)")
-    plt.ylabel("Ratio of precision ($R_p$)")
+    plt.xlabel("Threshold of IOU ($T_{IOU}$)", fontname = "Arial", fontsize=18)
+    plt.ylabel("Ratio of precision ($R_p$)", fontname = "Arial", fontsize=18)
 
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
     plt.legend(loc="upper right")
+    plt.tight_layout(rect=[0.01, 0.01, 1, 1])
+    plt.savefig("./plots/comparison_rp.eps", format='eps')
+    plt.clf()
+
+    for correct, recall, l, c in zip(corrects_methods, recalls_methods, labels, COLORS):
+        plt.plot(recall, correct, label=l, color=c)
+
+    plt.xlabel("Ratio of precision ($R_r$)", fontname="Arial", fontsize=18)
+    plt.ylabel("Ratio of recall ($R_p$)", fontname="Arial", fontsize=18)
+    plt.xticks(fontsize=18, fontname="Arial")
+    plt.yticks(fontsize=18, fontname="Arial")
+    plt.legend(loc="upper left")
     plt.tight_layout()
-    plt.show()
+    plt.savefig("./plots/comparison_roc.png", format='png')
 
 
 '''
