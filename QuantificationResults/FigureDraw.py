@@ -11,9 +11,10 @@ from sklearn.ensemble import IsolationForest
 base_path = ["./20210522-4compounds/used_CI/Control/",
              "./20210522-4compounds/used_CI/DMSO/",
              "./20210522-4compounds/used_CI/Dia/",
-             "./20210522-4compounds/used_CI/Iso/",
+             #"./20210522-4compounds/used_CI/Iso/",
              "./20210522-4compounds/used_CI/Caffine/",
-             "./20210522-4compounds/used_CI/Saha/"]
+             #"./20210522-4compounds/used_CI/Saha/"
+             ]
 # all paths:
 quatification = "quantification.csv"
 index = ["t_l", "c_m", "cpt", "t_r", "d_m"]
@@ -131,8 +132,8 @@ colors = [[0.1843, 0.3098, 0.3098],
 colors = ["tab:blue", "tab:green",  "tab:purple", "tab:brown", "tab:pink", "tab:olive"]
 # ========================================
 x = [1, 2, 3, 4, 5]
-labels = ["$Wild$", "$DMSO$", "$Dia$", "$Iso$", "$Caffi$", "$Saha$"]
-boxes1 = plt.boxplot(data_all, labels = labels, positions = [0, 1, 2, 3, 4, 5], widths = 0.8, patch_artist=True,
+labels = ["$Wild$", "$DMSO$", "$Dia$", "$Caffi$"] #, "$Iso$" , "$Saha$"
+boxes1 = plt.boxplot(data_all, labels = labels, positions = [0, 1, 2, 3], widths = 0.8, patch_artist=True,
                      showfliers=True)
 #plt.errorbar(labels, means,yerr=stds, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 for box, color in zip(boxes1['boxes'], colors):
