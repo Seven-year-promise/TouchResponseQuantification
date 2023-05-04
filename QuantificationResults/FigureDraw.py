@@ -105,6 +105,7 @@ for path in base_path:
     means.append(np.mean(filter_data))
     data_all.append(filter_data)
 
+plt.figure(figsize=(4.5,5))
 
 green_diamond = dict(markerfacecolor='y', marker='D')
 """

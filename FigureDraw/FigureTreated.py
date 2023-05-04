@@ -7,7 +7,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-t_I = 3
+t_I = 2
 
 base_path = ["./data/behaviors_result07301500normalbody/",
              "./data/behaviors_result07301530normalbody/",
@@ -174,7 +174,7 @@ labels = ['54', '54.5', '55', '55.5', '56', '56.5']
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
 #    box.set(facecolor = color )
-plt.figure(figsize=(5,4))
+plt.figure(figsize=(3,3))
 #plt.subplot(221)
 
 if t_I == 0:
@@ -186,7 +186,7 @@ if t_I == 0:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
-
+    plt.ylim(ymin=0 - max(normal_mean[0:6]) * 0.01)
 
     #plt.subplot(222)
 elif t_I == 1:
@@ -198,6 +198,7 @@ elif t_I == 1:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
+    plt.ylim(ymin=0 - max(normal_mean[6:12]) * 0.01)
 
     #plt.subplot(223)
 elif t_I == 2:
@@ -210,6 +211,7 @@ elif t_I == 2:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
+    plt.ylim(ymin=0 - max(normal_mean[12:18]) * 0.01)
 
     #plt.subplot(224)
 elif t_I == 3:
@@ -222,6 +224,7 @@ elif t_I == 3:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[t_I], fontname = "Arial", fontsize=14)
+    plt.ylim(ymin=0 - max(normal_mean[18:24]) * 0.01)
 else:
     raise NotImplementedError
 
