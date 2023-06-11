@@ -19,11 +19,11 @@ ax.plot(data.Threshold,
         data.Diversity,
         color= "black",
         linestyle="--",
-        label=r"$N_{pp}$")
+        label=r"#$N_{pp}$")
 # set x-axis label
 ax.set_xlabel(r"Threshold of hierarchical clustering ($T_{pr}$)", fontname = "Arial", fontsize = 12)
 # set y-axis label
-ax.set_ylabel(r"Number of pattern proposals ($N_{pp}$)", #r"Diversity of drug effect tree ($#TD$)",
+ax.set_ylabel(r"Number of pattern proposals (#$N_{pp}$)", #r"Diversity of drug effect tree ($#TD$)",
               fontname = "Arial",
               fontsize=12)
 
