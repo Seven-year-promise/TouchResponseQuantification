@@ -7,7 +7,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-a_I = 0
+a_I = 3
 
 base_path = ["./data/behaviors_result07291500body/",
              "./data/behaviors_result07301500normalbody/",
@@ -176,7 +176,7 @@ x = [1, 2, 3, 4, 5]
 
 # ========================================
 labels = ['30 hpf', '54 hpf', '78 hpf']
-plt.figure(figsize=(5,4))
+plt.figure(figsize=(3,3))
 # boxes2 = plt.boxplot(body_data, labels = labels, positions = [7, 8, 9, 10, 11], widths = 0.8, patch_artist=True, showfliers=True)
 # plt.errorbar(labels, body_mean, yerr=body_std, fmt='k-o',lw = 2,ecolor='k',elinewidth=1,ms=7,capsize=3)
 # for box, color in zip(boxes2['boxes'], colors):
@@ -192,7 +192,7 @@ if a_I == 0:
     plt.xticks(fontsize=14, fontname = "Arial", )
     plt.yticks(fontsize=13, fontname = "Arial")
     plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
-
+    plt.ylim(ymin=0 - max(body_mean[0:3]) * 0.01)
     #plt.subplot(222)
 
 elif a_I == 1:
@@ -202,6 +202,7 @@ elif a_I == 1:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
+    plt.ylim(ymin=0 - max(body_mean[3:6]) * 0.01)
 
     #plt.subplot(223)
 elif a_I == 2:
@@ -211,7 +212,7 @@ elif a_I == 2:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
-
+    plt.ylim(ymin=0 - max(body_mean[6:9]) * 0.1)
     #plt.subplot(224)
 elif a_I == 3:
     plt.errorbar(labels, body_mean[9:12], yerr=body_std[9:12], marker="^", lw=2, c='black', elinewidth=1, ms=7, capsize=3)
@@ -220,8 +221,10 @@ elif a_I == 3:
     plt.xticks(fontsize=14, fontname = "Arial")
     plt.yticks(fontsize=14, fontname = "Arial")
     plt.ylabel(ylabels[a_I], fontname = "Arial", fontsize=14)
+    plt.ylim(ymin=0 - max(body_mean[9:12]) * 0.01)
 else:
     raise NotADirectoryError
+
 
 # ========================================
 # labels = ['30 hpf', '33 hpf', '51 hpf', '54 hpf', '57 hpf']

@@ -7,7 +7,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-p_I = 0
+p_I = 3
 
 base_path = ["./data/behaviors_result07301500normal_all/"]
 
@@ -148,7 +148,7 @@ plot_data.append(body_data)
 plot_data.append(tail_data)
 plot_data = np.array(plot_data)
 labels = [['head'], ['body'], ['tail']]
-plt.figure(figsize=(5,4))
+plt.figure(figsize=(3, 3))
 
 #plt.subplot(221)
 """
