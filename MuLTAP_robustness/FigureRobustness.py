@@ -130,23 +130,37 @@ x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu3, std3)*100
 plt.plot(x, p, 'k', linewidth=2, color='g')
 
-plt.figtext(0.35, 0.81, r"$\mu_1 = 11.12\%$",
+plt.figtext(0.25, 0.6, r"$\mu_1 = 11.12\%$",
         horizontalalignment='center', fontname =font, color='r', fontsize=fontsize)
-plt.figtext(0.35, 0.76, r"$s_1 = 13.31\%$",
+plt.figtext(0.25, 0.55, r"$s_1 = 13.31\%$",
         horizontalalignment='center', fontname =font, color='r', fontsize=fontsize)
 
-plt.figtext(0.53, 0.7, r"$\mu_2 = 30.01\%$",
+plt.figtext(0.6, 0.7, r"$\mu_2 = 30.01\%$",
         horizontalalignment='center', fontname =font, color='b', fontsize=fontsize)
-plt.figtext(0.53, 0.65, r"$s_2 = 9.59\%$",
+plt.figtext(0.6, 0.65, r"$s_2 = 9.59\%$",
         horizontalalignment='center', fontname =font, color='b', fontsize=fontsize)
 
-plt.figtext(0.7, 0.55, r"$\mu_3 = 67.24\%$",
+plt.figtext(0.8, 0.48, r"$\mu_3 = 67.24\%$",
         horizontalalignment='center', fontname =font, color='g', fontsize=fontsize)
-plt.figtext(0.7, 0.5, r"$s_3 = 13.93\%$",
+plt.figtext(0.8, 0.43, r"$s_3 = 13.93\%$",
         horizontalalignment='center', fontname =font, color='g', fontsize=fontsize)
+
+
+
+plt.axvline(x=5, ymax=0.8, color='black', linestyle='-')
+plt.figtext(0.35, 0.74, r"$p_h(5\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
+
+plt.axvline(x=30, ymax=0.9, color='black', linestyle='-')
+plt.figtext(0.49, 0.82, r"$p_b(30\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
+
+plt.axvline(x=65, ymax=0.53, color='black', linestyle='-')
+plt.figtext(0.675, 0.54, r"$p_t(65\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
 
 x_ticks = np.arange(-20, 120, 10)   # range from -25 to 100, show every 10
-y_ticks = np.arange(0, 7, 1) # range from 0 to 20, show every 2
+y_ticks = np.arange(0, 8, 1) # range from 0 to 20, show every 2
 plt.xticks(x_ticks, fontname =font, fontsize = fontsize)
 plt.yticks(y_ticks, fontname =font, fontsize = fontsize)
 

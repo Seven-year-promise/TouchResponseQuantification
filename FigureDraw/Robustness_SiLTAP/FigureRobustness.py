@@ -5,7 +5,7 @@ import matplotlib
 from sklearn.neighbors import KernelDensity
 from scipy.stats import norm
 
-font = "Calibri"
+font = "Arial"
 fontsize = 12
 
 def hist_percentage(data, bin_num = 20):
@@ -139,9 +139,9 @@ plt.figtext(0.53, 0.75, r"$\mu_2 = 28.87\%$",
 plt.figtext(0.53, 0.7, r"$s_2 = 5.69\%$",
         horizontalalignment='center', fontname =font, color='b', fontsize=fontsize)
 
-plt.figtext(0.75, 0.65, r"$\mu_3 = 69.46\%$",
+plt.figtext(0.75, 0.75, r"$\mu_3 = 69.46\%$",
         horizontalalignment='center', fontname =font, color='g', fontsize=fontsize)
-plt.figtext(0.75, 0.6, r"$s_3 = 8.53\%$",
+plt.figtext(0.75, 0.7, r"$s_3 = 8.53\%$",
         horizontalalignment='center', fontname =font, color='g', fontsize=fontsize)
 
 x_ticks = np.arange(-20, 100, 10)   # range from -25 to 100, show every 10
@@ -149,9 +149,19 @@ y_ticks = np.arange(0, 20, 2) # range from 0 to 20, show every 2
 plt.xticks(x_ticks, fontname =font, fontsize = fontsize)
 plt.yticks(y_ticks, fontname =font, fontsize = fontsize)
 
+plt.axvline(x=5, ymax=0.9, color='black', linestyle='-')
+plt.figtext(0.4, 0.82, r"$p_h(5\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
 
+plt.axvline(x=30, ymax=0.6, color='black', linestyle='-')
+plt.figtext(0.55, 0.59, r"$p_b(30\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
 
-plt.xlabel("Touched points in percentage coordinate system $\mathbb{P}$ (%)", fontname =font,fontsize = fontsize)
+plt.axvline(x=65, ymax=0.65, color='black', linestyle='-')
+plt.figtext(0.75, 0.63, r"$p_t(65\%)$",
+        horizontalalignment='center', fontname =font, color='black', fontsize=fontsize)
+
+plt.xlabel("Touched points (SiLTAP) in percentage coordinate system $\mathbb{P}$ (%)", fontname =font,fontsize = fontsize)
 
 plt.ylabel("Number of touched points", fontname =font, fontsize = fontsize)
 
