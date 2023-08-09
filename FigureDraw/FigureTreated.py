@@ -7,7 +7,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 
-t_I = 2
+t_I = 3
 
 base_path = ["./data/behaviors_result07301500normalbody/",
              "./data/behaviors_result07301530normalbody/",
@@ -268,6 +268,10 @@ for i in [1,2,3]:
 plt.xlabel("(hpf)", fontsize=14, fontname = "Arial")
 
 # plt.title(titles[I])
-plt.tight_layout()
+
+#plt.tight_layout()
+
+plt.subplots_adjust(left=0.25, right=0.95, top=0.95, bottom=0.2)
+#plt.show()
 plt.savefig(Fig_save_path[t_I], format='png')
 

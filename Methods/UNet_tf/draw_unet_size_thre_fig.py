@@ -31,7 +31,7 @@ def draw_sie_thre_fig():
     plt.plot(thresholds, JI, label="JI larva for U-Net + RT + CB", color = COLORS[1], linestyle="--")
     plt.text(12, JI[12] + 0.002, '(' + str(12) + ', ' + str(round(JI[12], 3)) + ')', fontsize=font_size, fontname=font_name)
     plt.scatter(12, JI[12], marker="x", color=COLORS[1])
-    plt.xlabel("Threshold for size based noise filter ($T_s$)", fontsize=font_size, fontname=font_name)
+    plt.xlabel("Threshold for size based noise filter ($T_{ms}$)", fontsize=font_size, fontname=font_name)
     plt.ylabel("JI and PC for larva segmentation", fontsize=font_size, fontname=font_name)
     plt.xticks(fontsize=font_size, fontname=font_name)
     plt.yticks(fontsize=font_size, fontname=font_name)

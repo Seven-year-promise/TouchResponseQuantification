@@ -238,6 +238,7 @@ for i in [1,2,3]:
 # plt.ylabel(ylabels[I])
 
 # plt.title(titles[I])
-plt.tight_layout()
+plt.subplots_adjust(left=0.25, right=0.95, top=0.95, bottom=0.07)
+#plt.tight_layout()
 plt.show()
 
