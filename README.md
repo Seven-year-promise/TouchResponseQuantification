@@ -1,6 +1,6 @@
 ## Quantification Platform for Touch Response of Zebrafish Larvae using Machine Learning
 
-- Paper link: https://books.google.de/books?hl=en&lr=&id=sC9VEAAAQBAJ&oi=fnd&pg=PA37&ots=QEJrpsBYG6&sig=_S66ybu-0qIhS0h_v73aOXseeTM&redir_esc=y#v=onepage&q&f=false
+- Paper link: https://publikationen.bibliothek.kit.edu/1000140195
 
 ## The functions of this code
 
