@@ -22,7 +22,9 @@
 - Install the environment according to `environment.yml`.
 - Change the path of the data and the path to save the quantification results in `config.py`: `QUANTIFY_DATA_PATH`, and `QUANTIFY_SAVE_PATH`.
 - DO the quantification by
+
     `python quantification.py`
+    
 - Visulization of the results can be done by `./QuantificationResults/FigureDraw.py`
 
 
