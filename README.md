@@ -25,6 +25,7 @@
     `python quantification.py`
     
 - Visulization of the results can be done by `./QuantificationResults/FigureDraw.py`
+- Pattern analysis of the quantification reusults can be done by `./HTS/`
 
 
 ## In case of citing our work
